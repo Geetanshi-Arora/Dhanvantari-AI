@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#EAF6FF" />
+    <title>Welcome back · Dhanvantari AI</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script type="module" src="assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a class="brand" href="index.html"
+        ><span class="brand-icon">✚</span
+        ><span
+          >Dhanvantari<span class="brand-ai"> AI</span
+          ><small>CARE BEYOND BOUNDARIES</small></span
+        ></a
+      ><button
+        class="menu-toggle"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navigation"
+      >
+        ☰
+      </button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="index.html#approach">Our approach</a
+        ><a href="index.html#journey">How it works</a
+        ><a href="login.html" class="button small"
+          >Explore the demo <span aria-hidden="true">→</span></a
+        >
+      </nav>
+    </header>
+    <main id="main">
+      <section class="auth-layout">
+        <div class="auth-story">
+          <p class="eyebrow">A LITTLE CLOSER TO BETTER CARE</p>
+          <h1>
+            Care begins<br />with <span class="gradient-text">connection.</span>
+          </h1>
+          <p class="lead">
+            Your community. Your care team.<br />One thoughtful workspace.
+          </p>
+          <div class="story-symbol" aria-hidden="true">✚<span>♡</span></div>
+          <blockquote>
+            Designed to support the hands<br />that make healthcare happen.
+          </blockquote>
+          <div class="notice">
+            Phase 1 frontend demo. No Supabase authentication, clinical
+            services, or real patient storage is connected.
+          </div>
+        </div>
+        <div class="auth-card">
+          <span class="pill">WELCOME TO DHANVANTARI</span>
+          <h2>Find your workspace</h2>
+          <p>Select a role to explore the prototype.</p>
+          <div class="role-picker" role="group" aria-label="Demo role">
+            <button
+              class="role-option selected"
+              data-role="nurse"
+              aria-pressed="true"
+            >
+              <span>✚</span><strong>Nurse</strong
+              ><small>Coordinate patient care</small></button
+            ><button
+              class="role-option"
+              data-role="doctor"
+              aria-pressed="false"
+            >
+              <span>♡</span><strong>Doctor</strong
+              ><small>View the upcoming workflow</small>
+            </button>
+          </div>
+          <form id="login-form">
+            <label for="demo-name"
+              >Display name <span class="optional">(optional)</span></label
+            ><input
+              id="demo-name"
+              name="displayName"
+              autocomplete="off"
+              maxlength="50"
+              placeholder="e.g. Demo nurse"
+            />
+            <p class="input-help">
+              Use a fictional name. No email or password is needed.
+            </p>
+            <button class="button full" type="submit" id="login-submit">
+              Enter nurse demo <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <div id="doctor-roadmap" class="notice" hidden>
+            <strong>Doctor workspace · Planned</strong>
+            <p>
+              Secure doctor login begins in Phase 2. Case review and
+              authorization follow in Phase 7, with the doctor dashboard and
+              analytics in Phase 9.
+            </p>
+            <a href="login.html">Return to role selection</a>
+          </div>
+          <p class="auth-foot">
+            Demo access only. This interface does not verify identity or protect
+            clinical records.
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <a class="footer-brand" href="index.html">✚ Dhanvantari AI</a
+      ><span>Made for better care, everywhere.</span
+      ><span>Prototype · Synthetic data only · Not clinically validated</span>
+    </footer>
+    <div class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

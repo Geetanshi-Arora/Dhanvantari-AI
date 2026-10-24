@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#EAF6FF" />
+    <title>Overview · Dhanvantari AI</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script type="module" src="assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a class="brand" href="index.html"
+        ><span class="brand-icon">✚</span
+        ><span
+          >Dhanvantari<span class="brand-ai"> AI</span
+          ><small>CARE BEYOND BOUNDARIES</small></span
+        ></a
+      ><button
+        class="menu-toggle"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navigation"
+      >
+        ☰
+      </button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Overview</a
+        ><a href="register.html">New patient</a
+        ><a href="language.html">Patient language</a>
+      </nav>
+    </header>
+    <div class="workspace-bar">
+      <span
+        ><span class="status-dot"></span> Nurse workspace
+        <span class="divider">/</span> Overview</span
+      ><span class="demo-badge">PHASE 1 · DEMO</span
+      ><button class="text-button" data-logout>Exit demo →</button>
+    </div>
+    <main id="main">
+      <section class="page-content">
+        <div class="page-title dashboard-title">
+          <div>
+            <p class="eyebrow">A NEW DAY. A CHANCE TO CARE.</p>
+            <h1>
+              Hello, <span id="greeting-name">Demo nurse</span>
+              <span class="wave" aria-hidden="true">✧</span>
+            </h1>
+            <p>Here’s a little overview of your community care workspace.</p>
+          </div>
+          <a class="button" href="language.html">＋ Register demo patient</a>
+        </div>
+        <div class="notice compact">
+          <strong>Demo workspace</strong> · All records are synthetic. New
+          entries last only for this browser tab. Do not enter real patient
+          information.
+        </div>
+        <div class="stats-grid">
+          <article class="stat">
+            <span class="stat-icon blue">♧</span>
+            <p>Demo patients</p>
+            <strong id="patient-count">3</strong
+            ><small>Synthetic sample records</small>
+          </article>
+          <article class="stat">
+            <span class="stat-icon lavender">◷</span>
+            <p>Consultations</p>
+            <strong>—</strong><small>Available in a later phase</small>
+          </article>
+          <article class="stat">
+            <span class="stat-icon pink">♡</span>
+            <p>Doctor reviews</p>
+            <strong>—</strong><small>No clinical review connected</small>
+          </article>
+          <article class="stat">
+            <span class="stat-icon blue">◎</span>
+            <p>Language preference</p>
+            <strong class="language-stat" id="dashboard-language"
+              >Not selected</strong
+            ><a href="language.html">Choose or change →</a>
+          </article>
+        </div>
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Demo patient directory</h2>
+                <p>Your sample community, at a glance.</p>
+              </div>
+              <span class="pill">SYNTHETIC DATA</span>
+            </div>
+            <label class="search-label" for="patient-search"
+              >Search by demo patient name or ID</label
+            ><input
+              type="search"
+              id="patient-search"
+              placeholder="Search demo patients…"
+            />
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>Patient ID</th>
+                    <th>Age</th>
+                    <th>Language</th>
+                    <th>Record</th>
+                  </tr>
+                </thead>
+                <tbody id="patient-rows"></tbody>
+              </table>
+            </div>
+            <p id="empty-search" hidden>No demo patients match your search.</p>
+            <p class="input-help">
+              Consultation history and clinical records are planned for later
+              phases.
+            </p>
+          </section>
+          <aside class="panel next-panel">
+            <span class="feature-icon">✧</span>
+            <p class="eyebrow">YOUR NEXT STEP</p>
+            <h2>A thoughtful start<br />to every visit.</h2>
+            <p>
+              Choose a language, add a fictional patient, and explore a simpler
+              registration experience.
+            </p>
+            <a class="button full" href="language.html"
+              >Start a demo registration →</a
+            >
+            <div class="next-divider"></div>
+            <h3>Coming in later phases</h3>
+            <ul class="roadmap-list">
+              <li>Secure sign-in and patient records</li>
+              <li>Gnani.ai voice conversations</li>
+              <li>Clinician-reviewed AI assistance</li>
+            </ul>
+            <span class="pill">NO LIVE CLINICAL SERVICES</span>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <a class="footer-brand" href="index.html">✚ Dhanvantari AI</a
+      ><span>Made for better care, everywhere.</span
+      ><span>Prototype · Synthetic data only · Not clinically validated</span>
+    </footer>
+    <div class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

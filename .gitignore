@@ -1,0 +1,12 @@
+# Local credentials and environments
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+# Browser test artifacts
+test-results/
+playwright-report/
+.DS_Store

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#EAF6FF" />
+    <title>New patient · Dhanvantari AI</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script type="module" src="assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a class="brand" href="index.html"
+        ><span class="brand-icon">✚</span
+        ><span
+          >Dhanvantari<span class="brand-ai"> AI</span
+          ><small>CARE BEYOND BOUNDARIES</small></span
+        ></a
+      ><button
+        class="menu-toggle"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navigation"
+      >
+        ☰
+      </button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Overview</a
+        ><a href="register.html">New patient</a
+        ><a href="language.html">Patient language</a>
+      </nav>
+    </header>
+    <div class="workspace-bar">
+      <span
+        ><span class="status-dot"></span> Nurse workspace
+        <span class="divider">/</span> New patient</span
+      ><span class="demo-badge">PHASE 1 · DEMO</span
+      ><button class="text-button" data-logout>Exit demo →</button>
+    </div>
+    <main id="main">
+      <section class="page-content">
+        <div class="page-title">
+          <p class="eyebrow">A THOUGHTFUL START TO CARE</p>
+          <h1>Meet your demo patient.</h1>
+          <p>Practice registration with fictional information only.</p>
+        </div>
+        <div class="registration-layout">
+          <form id="registration-form" class="panel registration-form">
+            <div class="panel-heading">
+              <div>
+                <h2>Patient information</h2>
+                <p>Fields marked * are required.</p>
+              </div>
+              <span class="pill">DEMO REGISTRATION</span>
+            </div>
+            <div class="notice compact">
+              Do not enter real personal or medical information. Nothing is sent
+              to a backend.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="patient-name">Fictional full name *</label
+                ><input
+                  id="patient-name"
+                  name="name"
+                  required
+                  maxlength="80"
+                  autocomplete="off"
+                  placeholder="e.g. Asha Demo"
+                />
+              </div>
+              <div class="field">
+                <label for="patient-age">Age in years *</label
+                ><input
+                  id="patient-age"
+                  name="age"
+                  type="number"
+                  min="0"
+                  max="120"
+                  step="1"
+                  required
+                  placeholder="e.g. 36"
+                />
+              </div>
+              <div class="field">
+                <label for="patient-sex"
+                  >Sex <span class="optional">(if relevant)</span></label
+                ><select id="patient-sex" name="sex">
+                  <option value="">Not specified</option>
+                  <option>Female</option>
+                  <option>Male</option>
+                  <option>Intersex</option>
+                  <option>Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="patient-language">Preferred language *</label
+                ><select id="patient-language" name="language" required>
+                  <option value="">Select a demo preference</option>
+                  <option value="en">English</option>
+                  <option value="hi">Hindi</option>
+                  <option value="bn">Bengali</option>
+                  <option value="ta">Tamil</option>
+                  <option value="te">Telugu</option>
+                  <option value="mr">Marathi</option>
+                  <option value="gu">Gujarati</option>
+                  <option value="pa">Punjabi</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="patient-contact"
+                  >Fictional contact reference
+                  <span class="optional">(optional)</span></label
+                ><input
+                  id="patient-contact"
+                  name="contact"
+                  maxlength="60"
+                  placeholder="e.g. DEMO-CONTACT-01"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="field">
+                <label for="consultation-date">Demo visit date *</label
+                ><input
+                  id="consultation-date"
+                  name="date"
+                  type="date"
+                  required
+                />
+              </div>
+              <div class="field wide">
+                <label for="patient-history"
+                  >Relevant medical history
+                  <span class="optional">(optional)</span></label
+                ><textarea
+                  id="patient-history"
+                  name="history"
+                  rows="3"
+                  maxlength="1000"
+                  placeholder="Fictional history or existing conditions only"
+                ></textarea>
+              </div>
+              <div class="field">
+                <label for="patient-allergies"
+                  >Known allergies
+                  <span class="optional">(optional)</span></label
+                ><textarea
+                  id="patient-allergies"
+                  name="allergies"
+                  rows="2"
+                  maxlength="500"
+                  placeholder="Fictional details; leave blank if unknown"
+                ></textarea>
+              </div>
+              <div class="field">
+                <label for="patient-medicines"
+                  >Current medicines
+                  <span class="optional">(optional)</span></label
+                ><textarea
+                  id="patient-medicines"
+                  name="medicines"
+                  rows="2"
+                  maxlength="500"
+                  placeholder="Fictional details only"
+                ></textarea>
+              </div>
+            </div>
+            <label class="checkbox-label"
+              ><input type="checkbox" name="consent" required /><span
+                >I confirm this is synthetic data and acknowledge this simulated
+                consent step. *</span
+              ></label
+            >
+            <p class="input-help">
+              This checkbox demonstrates the interface; it does not record legal
+              patient consent.
+            </p>
+            <p id="registration-error" class="error" role="alert" hidden></p>
+            <div class="form-actions">
+              <a class="secondary-link" href="dashboard.html">Cancel</a
+              ><button class="button" type="submit">Save demo patient →</button>
+            </div>
+          </form>
+          <aside>
+            <div class="panel registration-note">
+              <span class="feature-icon lavender">♡</span>
+              <h2>Every detail,<br />with care.</h2>
+              <p>
+                This foundation previews the information nurses will collect in
+                a future secure workflow.
+              </p>
+              <ol class="simple-steps">
+                <li>Choose a language</li>
+                <li>Add fictional patient details</li>
+                <li>View the demo directory</li>
+              </ol>
+              <div class="notice">
+                Patient IDs are generated automatically. Entries are stored
+                temporarily in this tab and cleared when you exit the demo.
+              </div>
+              <p class="input-help">
+                Voice consultation, medical evidence uploads, and AI assessment
+                are planned for later phases.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <a class="footer-brand" href="index.html">✚ Dhanvantari AI</a
+      ><span>Made for better care, everywhere.</span
+      ><span>Prototype · Synthetic data only · Not clinically validated</span>
+    </footer>
+    <div class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
