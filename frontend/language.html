@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#EAF6FF" />
+    <title>Patient language · Dhanvantari AI</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script type="module" src="assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a class="brand" href="index.html"
+        ><span class="brand-icon">✚</span
+        ><span
+          >Dhanvantari<span class="brand-ai"> AI</span
+          ><small>CARE BEYOND BOUNDARIES</small></span
+        ></a
+      ><button
+        class="menu-toggle"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navigation"
+      >
+        ☰
+      </button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="dashboard.html">Overview</a
+        ><a href="register.html">New patient</a
+        ><a href="language.html">Patient language</a>
+      </nav>
+    </header>
+    <div class="workspace-bar">
+      <span
+        ><span class="status-dot"></span> Nurse workspace
+        <span class="divider">/</span> Patient language</span
+      ><span class="demo-badge">PHASE 1 · DEMO</span
+      ><button class="text-button" data-logout>Exit demo →</button>
+    </div>
+    <main id="main">
+      <section class="page-content narrow">
+        <div class="page-title centered">
+          <span class="pill">A FAMILIAR LANGUAGE. A BETTER CONNECTION.</span>
+          <h1>Let’s start with understanding.</h1>
+          <p>Choose a language preference for this demo patient.</p>
+        </div>
+        <div class="notice">
+          <strong>Language selection preview only.</strong> These are
+          illustrative options, not a verified Gnani.ai language list.
+          Translation, recording, and speech playback are not active.
+        </div>
+        <div class="language-grid" role="group" aria-label="Patient language">
+          <button
+            class="language-option"
+            data-language="en"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">A</span><strong>English</strong
+            ><small>English</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="hi"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">अ</span><strong>हिन्दी</strong
+            ><small>Hindi</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="bn"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">অ</span><strong>বাংলা</strong
+            ><small>Bengali</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="ta"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">அ</span><strong>தமிழ்</strong
+            ><small>Tamil</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="te"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">అ</span><strong>తెలుగు</strong
+            ><small>Telugu</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="mr"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">म</span><strong>मराठी</strong
+            ><small>Marathi</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="gu"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">અ</span><strong>ગુજરાતી</strong
+            ><small>Gujarati</small
+            ><span class="selection-mark" aria-hidden="true">✓</span></button
+          ><button
+            class="language-option"
+            data-language="pa"
+            aria-pressed="false"
+          >
+            <span class="language-glyph">ਅ</span><strong>ਪੰਜਾਬੀ</strong
+            ><small>Punjabi</small
+            ><span class="selection-mark" aria-hidden="true">✓</span>
+          </button>
+        </div>
+        <div class="language-bottom">
+          <p id="language-status" role="status">
+            Select a language to continue.
+          </p>
+          <button class="button" id="language-continue" disabled>
+            Continue to registration →
+          </button>
+        </div>
+        <p class="centered input-help">
+          The nurse can change this preference at any time during the demo.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <a class="footer-brand" href="index.html">✚ Dhanvantari AI</a
+      ><span>Made for better care, everywhere.</span
+      ><span>Prototype · Synthetic data only · Not clinically validated</span>
+    </footer>
+    <div class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
