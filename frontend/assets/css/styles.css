@@ -1570,3 +1570,13 @@ td:first-child {
     flex-shrink: 0;
   }
 }
+body {
+  background: linear-gradient(
+    135deg,
+    #B9E5FF 0%,
+    #C7E6FF 35%,
+    #DCD0FF 72%,
+    #F5D4EC 100%
+  );
+  background-attachment: fixed;
+}
