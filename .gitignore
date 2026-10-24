@@ -10,3 +10,11 @@ node_modules/
 test-results/
 playwright-report/
 .DS_Store
+# Local tooling and scratch files
+work/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+*.log

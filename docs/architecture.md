@@ -10,9 +10,9 @@ Language options are illustrative UI preferences. No option claims verified Gnan
 
 Synthetic registrations remain in sessionStorage for the current tab. Exit demo clears its state; normal browser tab closure ends its lifetime (browser session restoration may restore it). This mechanism is neither encrypted medical storage nor offline-first clinical support. Text entered by users is rendered through textContent, not HTML. The app uses native input validation and never requests credentials.
 
-## Planned architecture: not implemented
+## Phase roadmap (Phase 2 stage 1 now implemented)
 
-- Phase 2: FastAPI, Pydantic, Uvicorn, Supabase Auth/PostgreSQL, registration/session APIs and role-based access. Supabase RLS must restrict access to assigned cases.
+- Phase 2 stage 1: FastAPI, Pydantic, Uvicorn, Supabase Auth/PostgreSQL, session APIs, controlled clinician provisioning, role dependencies, audit events and schema/RLS foundation implemented. Registration, urgent-case workflow, clinical APIs, uploads and doctor review remain subsequent stages. See `phase2-stage1.md`.
 - Phase 3: verified Gnani.ai STT/TTS behind modular backend voice adapters, a labeled development mock if provider details are unavailable. Enable only provider-verified languages.
 - Phase 4: server-side Gemini, validated structured JSON, selected-language questions, original transcript retained separately from English clinical summaries.
 - Phase 5: evidence requests and consented uploads to private Supabase Storage. Requests for available evidence must not become autonomous test orders.
@@ -22,6 +22,6 @@ Synthetic registrations remain in sessionStorage for the current tab. Exit demo 
 - Phase 9: longitudinal records, doctor dashboard, aggregate Chart.js analytics without patient identifiers.
 - Phase 10: comprehensive functional/security/integration tests and Vercel frontend plus compatible Python backend deployment.
 
-Future database entities: users, patients, consultations, transcripts, symptoms, observations, medical_files, ai_assessments, triage_results, doctor_notifications, doctor_reviews, care_plans, referrals, follow_ups, audit_logs. Relationships, indexes, timestamps and authorization policies belong in migrations. No empty executable APIs or pretend security policies are created in Phase 1.
+Original roadmap entities (the Phase 2 migration uses the concrete models documented in `../database/migrations/README.md`): users, patients, consultations, transcripts, symptoms, observations, medical_files, ai_assessments, triage_results, doctor_notifications, doctor_reviews, care_plans, referrals, follow_ups, audit_logs. Relationships, indexes, timestamps and authorization policies belong in migrations. No empty executable APIs or pretend security policies are created in Phase 1.
 
 All privileged credentials remain on the backend. Gnani.ai will not be substituted with a different provider. AI must not diagnose autonomously, prescribe, authorize treatment, or impersonate a doctor. The system is not clinically validated.

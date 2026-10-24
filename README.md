@@ -2,7 +2,7 @@
 
 A multilingual, nurse-assisted healthcare support platform for rural India.
 
-**Phase 1: frontend foundation.** A responsive HTML, CSS, and vanilla JavaScript prototype in a light sky-blue, lavender, purple, and pink theme. No external APIs, real authentication, medical analysis, or voice services are connected. Use synthetic data only.
+**Phase 1: frontend foundation preserved. Phase 2 stage 1: backend foundation implemented.** A responsive HTML, CSS, and vanilla JavaScript prototype in a light sky-blue, lavender, purple, and pink theme. No external APIs, real authentication, medical analysis, or voice services are connected. Use synthetic data only.
 
 ## Run locally
 
@@ -41,14 +41,14 @@ frontend/
     js/app.js                Navigation and page interactions
     js/store.js              Tab-scoped demo data
 backend/
-  README.md                  Backend phase boundary
-  app/README.md              Future FastAPI module boundary
-database/migrations/README.md  Future Supabase migration boundary
+  README.md                  Backend setup and VS Code instructions
+  app/                       Modular FastAPI application
+database/migrations/          Alembic schema and RLS migrations
 docs/architecture.md        Full roadmap and safety boundaries
 tests/smoke.cjs             Browser functional smoke test
 ```
 
-See [architecture](docs/architecture.md) for the planned stack and phase boundaries. Backend implementation starts only after Phase 2 approval. Chart.js is reserved for Phase 9 analytics; it is not loaded unnecessarily in Phase 1.
+See [architecture](docs/architecture.md) for the planned stack and phase boundaries. Phase 2 stage 1 is implemented locally after approval; patient workflows remain the next stage. Chart.js is reserved for Phase 9 analytics; it is not loaded unnecessarily in Phase 1.
 
 ## Validate
 
@@ -59,3 +59,16 @@ node tests/smoke.cjs
 ```
 
 The test covers page navigation, demo role selection, language selection, invalid/valid registration, search, reload persistence, logout clearing, mobile layout, and browser errors. `BASE_URL` can change the test target; `CHROMIUM_PATH` selects the browser executable (defaults to `/usr/bin/chromium`). Do not run these synthetic-data checks against future production systems.
+
+## Phase 2 stage 1
+
+FastAPI, PostgreSQL/Alembic migrations, Supabase authentication, encrypted server-side
+sessions, CSRF, role dependencies and audit logging are now available. The initial
+schema includes patient/visit/consent/evidence/review entities and urgent escalation
+records with RLS; clinical write APIs are deliberately not enabled yet. The original
+frontend remains a fictional-data demo and has not been switched to API login.
+
+See [backend setup and VS Code instructions](backend/README.md),
+[migrations and database roles](database/migrations/README.md), and
+[stage report](docs/phase2-stage1.md). No external AI, voice or messaging integration,
+remote database mutation, push, merge or deployment has been performed.
