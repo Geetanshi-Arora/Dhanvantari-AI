@@ -1,11 +1,11 @@
 from contextlib import contextmanager
 from uuid import UUID
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import Session
 
 
-def make_engine(url: str):
+def make_engine(url: str | URL):
     return create_engine(url, pool_pre_ping=True, hide_parameters=True)
 
 

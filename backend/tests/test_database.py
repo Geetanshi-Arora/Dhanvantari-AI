@@ -1,10 +1,11 @@
 from uuid import uuid4
 
 import pytest
-from app.db.session import actor_session, check_runtime_role
 from conftest import DOCTOR, NURSE, OTHER
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
+
+from app.db.session import actor_session, check_runtime_role
 
 
 def seed_case(admin):

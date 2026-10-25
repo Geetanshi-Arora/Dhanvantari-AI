@@ -6,12 +6,13 @@ import pgserver
 import pytest
 from alembic import command
 from alembic.config import Config
-from app.core.config import Settings
-from app.main import create_app
 from cryptography.fernet import Fernet
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
+
+from app.core.config import Settings
+from app.main import create_app
 
 NURSE = UUID("10000000-0000-0000-0000-000000000001")
 DOCTOR = UUID("10000000-0000-0000-0000-000000000002")

@@ -11,6 +11,67 @@ with the backend; its forms still use fictional tab-scoped data. Never use that
 demo to enter actual patient information. Backend authentication is independently
 testable through the APIs below. No production deployment or remote migration is performed.
 
+## Runtime credential integration status
+
+The normal FastAPI factory now reads **only `backend/runtime.env`**, using a fixed
+path relative to the installed source. It never opens `backend/.env`. Alembic and
+administrative provisioning keep their existing, separate `MIGRATION_DATABASE_URL`
+configuration; neither their implementation nor migrations were changed.
+
+The credential loader implements the confirmed current-user Windows DPAPI format:
+`CryptUnprotectData` with flags `1` and ASCII entropy `PROJECT + ":" + ROLE`.
+The decrypted UTF-8 JSON must contain exactly `project`, `role`, `commit` and
+`password`, without duplicate keys. The first three values are pinned to the
+reviewed Dhanvantari project, runtime role and credential-preparation commit
+`7c47b25f59cfe6cc5606156b09375d56bcab7a6a`. This metadata commit remains fixed
+when the application is updated; it identifies the existing credential's provenance.
+The password must match `[A-Za-z0-9_-]{64}`. Empty or oversized encrypted files
+(over 65536 bytes), malformed payloads and decryption failures are rejected.
+
+The loader opens paths read-only using native Windows handles, rejects reparse
+points in every component, and holds checked ancestor handles open until the read
+finishes. No write/delete sharing is granted during the read. The immediate private
+directory must have a protected DACL and one inheritable current-user FullControl
+entry; both it and the file must be owned by the current user, with exactly one
+current-user FullControl entry. Broader permissions fail closed; the loader never
+repairs ACLs, creates files or regenerates credentials. A sharing conflict also fails
+closed. No password fallback or administrator connection is used.
+
+The DPAPI output is wiped before `LocalFree`, including validation/error paths,
+and the mutable plaintext copy is cleared. Python's decoded JSON strings and the
+password retained by SQLAlchemy cannot be reliably wiped; they remain process
+secrets. Do not enable debugger-local capture or credential-bearing debug logs.
+
+Automated tests use fictional data and native Windows API doubles. They do not
+establish actual DPAPI or filesystem compatibility on Windows. **Before activation,
+a separately reviewed local Windows verification must check the existing private
+credential and restrictive ACLs without printing its contents, opening a database
+connection or starting FastAPI.** Do not regenerate or overwrite the credential.
+
+`runtime.env.example` documents the proposed local configuration. Do not create it
+with real values as part of the current code-review step. It has no database URL or
+database password: connection assembly fixes the project, restricted pooler username,
+port 5432, database `postgres` and TLS `verify-full`. The exact session pooler host
+must come from the previously verified Dhanvantari development project. The CA
+file must exist at an absolute path. The encrypted credential must remain outside
+the checkout. URL passwords are passed in an in-memory SQLAlchemy URL object,
+never formatted into dotenv text or printed.
+
+The future runtime file is ignored by Git. The Supabase publishable key and session
+encryption key still require private configuration: reuse the existing session key
+privately when activation is approved. No administrator credential belongs in this
+file. Runtime dotenv interpolation is disabled, unknown keys are rejected, and the
+server refuses database URL overrides or libpq service/host-address/options/password
+overrides. Use a fresh terminal without `MIGRATION_DATABASE_URL`, `DATABASE_URL`,
+`PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE`, `PGOPTIONS`, `PGPASSWORD` or `PGPASSFILE`
+for future server startup. Explicit TLS URL parameters take precedence over TLS
+environment defaults; TLS verification must never be disabled.
+
+Supabase Auth `/user` verification still precedes clinical role/UUID assertion on
+login and authenticated requests. The readiness endpoint now runs `SELECT 1`
+without applying a synthetic clinical identity. Existing transaction-local identity,
+role reset, consent, authorization and RLS behavior remain unchanged.
+
 ## Run locally in VS Code
 
 Prerequisites: Python 3.12+, PostgreSQL 15+ for a standalone local database or a
@@ -32,8 +93,8 @@ API login; automated tests use a local fake Auth adapter and real temporary Post
    records the versions used for the automated checks, including test tooling.
    For runtime-only installation use `python -m pip install -e backend` instead.
 
-3. Copy `backend/.env.example` to `backend/.env`. Replace the placeholders in
-   that ignored local file. Generate the session key using the command in the
+3. For administrative operations only, copy `backend/.env.example` to
+   `backend/.env`. Replace the placeholders in that ignored local file. Generate the session key using the command in the
    example. Do not put credentials in frontend files, VS Code launch settings,
    shell history, issue comments or tracked configuration. Use environment-variable
    injection from a secret manager outside development.
@@ -53,7 +114,9 @@ API login; automated tests use a local fake Auth adapter and real temporary Post
    Keep `MIGRATION_DATABASE_URL` out of the normal server process; use a separate
    private administrative environment for migration/provisioning commands.
 
-5. Start the application from the backend directory:
+5. **Pending Windows verification and separate activation review:** the normal
+   server now requires `backend/runtime.env`; `backend/.env` alone cannot start it.
+   After the blocker above is resolved and activation is approved, use the backend directory:
 
    ```sh
    cd backend
@@ -73,7 +136,7 @@ API login; automated tests use a local fake Auth adapter and real temporary Post
    GET /openapi.json
    ```
 
-   Readiness checks database/schema access, not live Supabase Auth availability.
+   Readiness checks connectivity only, not schema access or live Supabase Auth availability.
    The app refuses to start with a superuser, RLS-bypass role or table-owner runtime
    connection. Interactive CDN-based API documentation is disabled to retain a
    strict content security policy; the OpenAPI JSON remains available.

@@ -13,9 +13,10 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.core.config import Settings
+from app.core.config import Settings, load_runtime_settings
 from app.core.http import AuthBodyLimit
-from app.db.session import actor_session, check_runtime_role, make_engine
+from app.core.runtime_credentials import runtime_database_url
+from app.db.session import check_runtime_role, make_engine
 from app.routes.auth import router
 from app.services.audit import audit
 from app.services.supabase_auth import SupabaseAuth
@@ -29,10 +30,8 @@ def create_app(settings: Settings | None = None, *, engine=None, auth=None):
 
 
 def _create_app(settings: Settings | None = None, *, engine=None, auth=None):
-    settings = settings or Settings()
-    db_engine = (
-        engine if engine is not None else make_engine(settings.database_url.get_secret_value())
-    )
+    settings = settings or load_runtime_settings()
+    db_engine = engine if engine is not None else make_engine(runtime_database_url(settings))
     client = httpx.Client(timeout=10, follow_redirects=False)
 
     @asynccontextmanager
@@ -124,8 +123,8 @@ def _create_app(settings: Settings | None = None, *, engine=None, auth=None):
 
     @app.get("/api/v1/health/ready")
     def ready():
-        with actor_session(db_engine, uuid4()) as connection:
-            connection.execute(text("SELECT 1 FROM app.staff_profiles LIMIT 0"))
+        with db_engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
         return {"status": "ok"}
 
     app.include_router(router)

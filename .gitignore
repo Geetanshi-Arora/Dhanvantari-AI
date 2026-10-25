@@ -18,3 +18,7 @@ work/
 htmlcov/
 *.egg-info/
 *.log
+
+# Separate local runtime configuration and encrypted credentials
+runtime.env
+*.dpapi

@@ -3,15 +3,16 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from app.core.config import Settings
-from app.db.session import actor_session, check_runtime_role
-from app.main import create_app
 from conftest import DOCTOR, NURSE, sign_in
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 from test_database import seed_case
+
+from app.core.config import Settings
+from app.db.session import actor_session, check_runtime_role
+from app.main import create_app
 
 
 def test_sensitive_patient_data_requires_current_consent(dbs):
@@ -47,7 +48,7 @@ def test_configuration_and_startup_tracebacks_redact_secrets(settings, dbs):
     with pytest.raises(ValidationError) as exc:
         Settings(_env_file=None, **values)
     assert marker not in "".join(traceback.format_exception(exc.value))
-    with patch("app.main.Settings", side_effect=ValueError(marker)):
+    with patch("app.main.load_runtime_settings", side_effect=ValueError(marker)):
         with pytest.raises(RuntimeError) as exc:
             create_app()
     assert marker not in "".join(traceback.format_exception(exc.value))

@@ -1,10 +1,11 @@
 import httpx
 import pytest
-from app.core.config import Settings
-from app.services.supabase_auth import SupabaseAuth
 from conftest import NURSE
 from fastapi import HTTPException
 from pydantic import ValidationError
+
+from app.core.config import Settings
+from app.services.supabase_auth import SupabaseAuth
 
 
 @pytest.mark.parametrize(

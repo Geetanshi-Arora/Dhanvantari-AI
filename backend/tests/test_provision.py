@@ -1,8 +1,9 @@
 from uuid import uuid4
 
 import pytest
-from app.provision import main
 from sqlalchemy import text
+
+from app.provision import main
 
 
 def test_operator_provisioning_requires_existing_auth_user(dbs, monkeypatch, capsys):

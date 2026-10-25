@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from app.core.security import require_role
 from conftest import DOCTOR, NURSE, sign_in
 from fastapi import Depends
 from sqlalchemy import text
+
+from app.core.security import require_role
 
 
 def test_health_and_frontend_unchanged(client):
