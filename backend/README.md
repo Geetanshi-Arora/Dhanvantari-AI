@@ -6,10 +6,11 @@ The initial migration includes all planned clinical entities, RLS read policies 
 urgent-escalation storage. Clinical write permissions, patient APIs, file storage
 endpoints and the doctor review UI are reserved for subsequent stages.
 
-The Phase 1 frontend is unchanged. Its demo login still does **not** authenticate
-with the backend; its forms still use fictional tab-scoped data. Never use that
-demo to enter actual patient information. Backend authentication is independently
-testable through the APIs below. No production deployment or remote migration is performed.
+The frontend now uses the existing cookie-based authentication APIs for nurse and
+doctor sign-in. Its patient forms still use fictional tab-scoped data; never enter
+actual patient information. Nurses receive the demo dashboard and doctors receive
+a separate placeholder. See [frontend login testing](../docs/frontend-authentication.md).
+No production deployment or remote migration is performed.
 
 ## Runtime credential integration status
 

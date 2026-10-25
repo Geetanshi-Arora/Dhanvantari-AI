@@ -8,10 +8,11 @@ from sqlalchemy import text
 from app.core.security import require_role
 
 
-def test_health_and_frontend_unchanged(client):
+def test_health_and_frontend_auth_shell(client):
     assert client.get("/api/v1/health/live").status_code == 200
     assert client.get("/api/v1/health/ready").status_code == 200
-    assert "PHASE 1" in client.get("/dashboard.html").text
+    assert "SYNTHETIC PATIENT DEMO" in client.get("/dashboard.html").text
+    assert '<main id="main" hidden>' in client.get("/dashboard.html").text
     assert client.get("/api/v1/auth/me").status_code == 401
 
 

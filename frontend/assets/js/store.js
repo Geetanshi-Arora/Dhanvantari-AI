@@ -15,11 +15,18 @@ export const samples = [
   { id: "DEMO-002", name: "Ravi Sample", age: 48, language: "en" },
   { id: "DEMO-003", name: "Meena Example", age: 29, language: "ta" },
 ];
+function demoOnly(value) {
+  return Object.fromEntries(
+    ["language", "patients", "registrationSaved"]
+      .filter((key) => Object.hasOwn(value, key))
+      .map((key) => [key, value[key]]),
+  );
+}
 export function readState() {
   try {
     const parsed = JSON.parse(sessionStorage.getItem(KEY) || "{}");
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
+      ? demoOnly(parsed)
       : {};
   } catch {
     return {};
@@ -27,7 +34,7 @@ export function readState() {
 }
 export function saveState(patch) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify({ ...readState(), ...patch }));
+    sessionStorage.setItem(KEY, JSON.stringify(demoOnly({ ...readState(), ...patch })));
     return true;
   } catch {
     return false;

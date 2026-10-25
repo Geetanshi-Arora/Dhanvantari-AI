@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="assets/css/styles.css" />
     <script type="module" src="assets/js/app.js"></script>
   </head>
-  <body>
+  <body data-required-role="nurse">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="header">
       <a class="brand" href="index.html"
@@ -32,20 +32,26 @@
         ><a href="language.html">Patient language</a>
       </nav>
     </header>
-    <div class="workspace-bar">
+    <section class="page-content" id="auth-status" aria-label="Session verification">
+      <p id="auth-status-message" role="status">Checking your secure session…</p>
+      <button class="text-button" id="auth-retry" hidden>Retry verification</button>
+      <a href="login.html">Return to sign in</a>
+      <noscript>Enable JavaScript to verify your session. Patient workflows remain unavailable.</noscript>
+    </section>
+    <div class="workspace-bar" hidden>
       <span
         ><span class="status-dot"></span> Nurse workspace
         <span class="divider">/</span> Overview</span
-      ><span class="demo-badge">PHASE 1 · DEMO</span
-      ><button class="text-button" data-logout>Exit demo →</button>
+      ><span class="demo-badge">SYNTHETIC PATIENT DEMO</span
+      ><button class="text-button" data-logout>Sign out →</button>
     </div>
-    <main id="main">
+    <main id="main" hidden>
       <section class="page-content">
         <div class="page-title dashboard-title">
           <div>
             <p class="eyebrow">A NEW DAY. A CHANCE TO CARE.</p>
             <h1>
-              Hello, <span id="greeting-name">Demo nurse</span>
+              Hello, <span id="greeting-name">Nurse</span>
               <span class="wave" aria-hidden="true">✧</span>
             </h1>
             <p>Here’s a little overview of your community care workspace.</p>
@@ -132,7 +138,7 @@
             <div class="next-divider"></div>
             <h3>Coming in later phases</h3>
             <ul class="roadmap-list">
-              <li>Secure sign-in and patient records</li>
+              <li>Secure patient records</li>
               <li>Gnani.ai voice conversations</li>
               <li>Clinician-reviewed AI assistance</li>
             </ul>

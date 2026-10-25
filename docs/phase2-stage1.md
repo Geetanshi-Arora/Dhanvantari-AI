@@ -1,5 +1,8 @@
 # Phase 2 stage 1 — foundation, migrations and authentication
 
+Current frontend authentication is documented in [frontend authentication](frontend-authentication.md).
+The frontend/demo results and remaining-work statements below describe the historical Stage 1 baseline.
+
 ## Step 36 local runtime-isolation milestone
 
 Revision 0003 adds a dedicated NOLOGIN clinical actor, retargets existing clinical

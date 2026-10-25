@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#EAF6FF" />
+    <title>Doctor workspace · Dhanvantari AI</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script type="module" src="assets/js/app.js"></script>
+  </head>
+  <body data-required-role="doctor">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a class="brand" href="index.html"
+        ><span class="brand-icon">✚</span
+        ><span
+          >Dhanvantari<span class="brand-ai"> AI</span
+          ><small>CARE BEYOND BOUNDARIES</small></span
+        ></a
+      ><button
+        class="menu-toggle"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navigation"
+      >
+        ☰
+      </button>
+      <nav id="navigation" aria-label="Main navigation"><a href="index.html">Home</a></nav>
+    </header>
+    <section class="page-content" id="auth-status" aria-label="Session verification">
+      <p id="auth-status-message" role="status">Checking your secure session…</p>
+      <button class="text-button" id="auth-retry" hidden>Retry verification</button>
+      <a href="login.html">Return to sign in</a>
+      <noscript>Enable JavaScript to verify your session. Patient workflows remain unavailable.</noscript>
+    </section>
+    <div class="workspace-bar" hidden>
+      <span
+        ><span class="status-dot"></span> Doctor workspace
+        <span class="divider">/</span> Overview</span
+      ><span class="demo-badge">DEVELOPMENT WORKSPACE</span
+      ><button class="text-button" data-logout>Sign out →</button>
+    </div>
+    <main id="main" hidden>
+      <section class="page-content narrow">
+        <div class="page-title"><p class="eyebrow">CLINICIAN WORKSPACE</p>
+          <h1>Doctor workspace</h1><p>You are signed in with a verified doctor account.</p></div>
+        <div class="notice"><strong>Doctor dashboard coming soon.</strong>
+          Patient review, prescribing and treatment decisions are unavailable here.
+          This placeholder provides no clinical actions or nurse-only workflows.</div>
+        <a class="button" href="index.html">Return home →</a>
+      </section>
+    </main>
+    <footer>
+      <a class="footer-brand" href="index.html">✚ Dhanvantari AI</a
+      ><span>Made for better care, everywhere.</span
+      ><span>Prototype · Synthetic data only · Not clinically validated</span>
+    </footer>
+    <div class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

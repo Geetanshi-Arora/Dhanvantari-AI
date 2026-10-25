@@ -30,7 +30,7 @@
         <a href="index.html#approach">Our approach</a
         ><a href="index.html#journey">How it works</a
         ><a href="login.html" class="button small"
-          >Explore the demo <span aria-hidden="true">→</span></a
+          >Sign in <span aria-hidden="true">→</span></a
         >
       </nav>
     </header>
@@ -49,15 +49,15 @@
             Designed to support the hands<br />that make healthcare happen.
           </blockquote>
           <div class="notice">
-            Phase 1 frontend demo. No Supabase authentication, clinical
-            services, or real patient storage is connected.
+            Sign in with your development staff account. Patient screens use
+            fictional demonstration data only; real patient APIs are not connected.
           </div>
         </div>
         <div class="auth-card">
           <span class="pill">WELCOME TO DHANVANTARI</span>
           <h2>Find your workspace</h2>
-          <p>Select a role to explore the prototype.</p>
-          <div class="role-picker" role="group" aria-label="Demo role">
+          <p>Select your workspace and sign in with your staff account.</p>
+          <div class="role-picker" role="group" aria-label="Workspace">
             <button
               class="role-option selected"
               data-role="nurse"
@@ -71,38 +71,24 @@
               aria-pressed="false"
             >
               <span>♡</span><strong>Doctor</strong
-              ><small>View the upcoming workflow</small>
+              ><small>Review clinician workspace status</small>
             </button>
           </div>
           <form id="login-form">
-            <label for="demo-name"
-              >Display name <span class="optional">(optional)</span></label
-            ><input
-              id="demo-name"
-              name="displayName"
-              autocomplete="off"
-              maxlength="50"
-              placeholder="e.g. Demo nurse"
-            />
-            <p class="input-help">
-              Use a fictional name. No email or password is needed.
-            </p>
-            <button class="button full" type="submit" id="login-submit">
-              Enter nurse demo <span aria-hidden="true">→</span>
-            </button>
+            <label for="login-email">Email address</label>
+            <input id="login-email" name="email" type="email" required
+              autocomplete="username" maxlength="254" placeholder="you@example.com" />
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" required
+              autocomplete="current-password" maxlength="1024" />
+            <p class="input-help">Your verified staff profile determines workspace access.</p>
+            <p id="login-error" class="error" role="alert" hidden></p>
+            <button class="button full" type="submit" id="login-submit">Sign In →</button>
           </form>
-          <div id="doctor-roadmap" class="notice" hidden>
-            <strong>Doctor workspace · Planned</strong>
-            <p>
-              Secure doctor login begins in Phase 2. Case review and
-              authorization follow in Phase 7, with the doctor dashboard and
-              analytics in Phase 9.
-            </p>
-            <a href="login.html">Return to role selection</a>
-          </div>
+          <button class="text-button" id="login-logout" data-logout hidden>Retry sign out →</button>
           <p class="auth-foot">
-            Demo access only. This interface does not verify identity or protect
-            clinical records.
+            Secure staff sign-in. Use fictional development accounts and synthetic
+            patient data only.
           </p>
         </div>
       </section>

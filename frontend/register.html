@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="assets/css/styles.css" />
     <script type="module" src="assets/js/app.js"></script>
   </head>
-  <body>
+  <body data-required-role="nurse">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="header">
       <a class="brand" href="index.html"
@@ -32,14 +32,20 @@
         ><a href="language.html">Patient language</a>
       </nav>
     </header>
-    <div class="workspace-bar">
+    <section class="page-content" id="auth-status" aria-label="Session verification">
+      <p id="auth-status-message" role="status">Checking your secure session…</p>
+      <button class="text-button" id="auth-retry" hidden>Retry verification</button>
+      <a href="login.html">Return to sign in</a>
+      <noscript>Enable JavaScript to verify your session. Patient workflows remain unavailable.</noscript>
+    </section>
+    <div class="workspace-bar" hidden>
       <span
         ><span class="status-dot"></span> Nurse workspace
         <span class="divider">/</span> New patient</span
-      ><span class="demo-badge">PHASE 1 · DEMO</span
-      ><button class="text-button" data-logout>Exit demo →</button>
+      ><span class="demo-badge">SYNTHETIC PATIENT DEMO</span
+      ><button class="text-button" data-logout>Sign out →</button>
     </div>
-    <main id="main">
+    <main id="main" hidden>
       <section class="page-content">
         <div class="page-title">
           <p class="eyebrow">A THOUGHTFUL START TO CARE</p>
@@ -198,7 +204,7 @@
               </ol>
               <div class="notice">
                 Patient IDs are generated automatically. Entries are stored
-                temporarily in this tab and cleared when you exit the demo.
+                temporarily in this tab and cleared when you sign out.
               </div>
               <p class="input-help">
                 Voice consultation, medical evidence uploads, and AI assessment
