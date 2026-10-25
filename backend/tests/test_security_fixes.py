@@ -62,26 +62,26 @@ def test_configuration_and_startup_tracebacks_redact_secrets(settings, dbs):
 @pytest.mark.parametrize("privilege", ["CREATEROLE", "CREATEDB", "REPLICATION"])
 def test_reject_administrative_runtime_role(dbs, privilege):
     with dbs[0].begin() as c:
-        c.execute(text(f"ALTER ROLE test_runtime {privilege}"))
+        c.execute(text(f"ALTER ROLE dhanvantari_runtime {privilege}"))
     try:
         with pytest.raises(RuntimeError):
             check_runtime_role(dbs[1])
     finally:
         with dbs[0].begin() as c:
-            c.execute(text(f"ALTER ROLE test_runtime NO{privilege}"))
+            c.execute(text(f"ALTER ROLE dhanvantari_runtime NO{privilege}"))
     check_runtime_role(dbs[1])
 
 
 def test_reject_membership_in_administrative_role(dbs):
     with dbs[0].begin() as c:
         c.execute(text("CREATE ROLE fictional_admin NOLOGIN CREATEDB"))
-        c.execute(text("GRANT fictional_admin TO test_runtime"))
+        c.execute(text("GRANT fictional_admin TO dhanvantari_runtime"))
     try:
         with pytest.raises(RuntimeError):
             check_runtime_role(dbs[1])
     finally:
         with dbs[0].begin() as c:
-            c.execute(text("REVOKE fictional_admin FROM test_runtime"))
+            c.execute(text("REVOKE fictional_admin FROM dhanvantari_runtime"))
             c.execute(text("DROP ROLE fictional_admin"))
 
 
@@ -259,10 +259,10 @@ def test_cli_startup_errors_do_not_expose_configuration(tmp_path):
 
 def test_reject_predefined_privileged_role_membership(dbs):
     with dbs[0].begin() as c:
-        c.execute(text("GRANT pg_read_all_data TO test_runtime"))
+        c.execute(text("GRANT pg_read_all_data TO dhanvantari_runtime"))
     try:
         with pytest.raises(RuntimeError):
             check_runtime_role(dbs[1])
     finally:
         with dbs[0].begin() as c:
-            c.execute(text("REVOKE pg_read_all_data FROM test_runtime"))
+            c.execute(text("REVOKE pg_read_all_data FROM dhanvantari_runtime"))

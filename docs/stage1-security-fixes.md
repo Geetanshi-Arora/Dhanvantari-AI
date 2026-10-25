@@ -11,7 +11,9 @@ were introduced.
   startup, migration CLI and provisioning CLI suppress underlying exception chains
   that could disclose configuration values. Do not log raw Settings/error input.
 - Roles: runtime startup rejects administrative attributes (including CREATEROLE,
-  CREATEDB, REPLICATION) and memberships outside the runtime/authenticated allowlist.
+  CREATEDB, REPLICATION). Revision 0003 replaces the historical authenticated
+  allowlist with application API/clinical-actor roles; startup also rejects
+  ADMIN OPTION and exercises the clinical role switch.
 - Audits: rejected origin/CSRF/session requests produce fixed-category security
   events without headers, cookie values, tokens, email, URL or untrusted actor IDs.
   Audit-storage failure denies access with 503.

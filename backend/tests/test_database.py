@@ -73,7 +73,7 @@ def test_patient_isolation_original_language_and_no_identity_leak(dbs):
             None,
             "",
         )
-        assert c.execute(text("SELECT current_user")).scalar_one() == "test_runtime"
+        assert c.execute(text("SELECT current_user")).scalar_one() == "dhanvantari_runtime"
 
 
 def test_consent_withdrawal_assignment_revocation_and_inactive_staff(dbs):
@@ -110,7 +110,7 @@ def test_consent_withdrawal_assignment_revocation_and_inactive_staff(dbs):
         "SET LOCAL ROLE app_owner",
     ],
 )
-def test_authenticated_cannot_escalate_or_write_clinical_data(dbs, statement):
+def test_clinical_actor_cannot_escalate_or_write_clinical_data(dbs, statement):
     with pytest.raises(DBAPIError), actor_session(dbs[1], NURSE) as db:
         db.execute(text(statement))
 

@@ -1,5 +1,32 @@
 # Phase 2 stage 1 — foundation, migrations and authentication
 
+## Step 36 local runtime-isolation milestone
+
+Revision 0003 adds a dedicated NOLOGIN clinical actor, retargets existing clinical
+RLS policies without changing expressions, and removes the application's shared
+authenticated-role dependency. Supabase Auth HTTP verification remains unchanged.
+The backend switches role and applies verified UUIDs transaction-locally; runtime
+startup validates restricted attributes/memberships and exercises the actor switch.
+The Alembic runner protects its ledger ACL before committing the same transaction.
+See `database/migrations/README.md` for exact boundaries and rollback procedures.
+
+This milestone is local code and disposable-database testing only. No Supabase
+0003 migration, live runtime-login creation, account provisioning, server startup
+or Stage 2 workflow is authorized or performed. The historical results below
+describe the earlier foundation milestone, not the new regression totals.
+
+Local Step 36 verification on 25 October 2026: 78 backend tests passed, one
+PostgreSQL 17+ MAINTAIN regression skipped on the older packaged PostgreSQL, and
+94% application line coverage. All 49 original frontend browser checks passed
+against a temporary static-file server; no FastAPI server was started. Ruff lint,
+formatting, installed dependency compatibility (43 packages) and Git whitespace
+checks passed. Frontend files match origin/main; migrations 0001 and 0002 match
+the committed versions. The tests used the actual `dhanvantari_runtime` role name
+in disposable PostgreSQL and exercised SET membership restrictions and one reused
+pooled connection. Supabase Auth was mocked. Live pooler compatibility and the
+PostgreSQL 17-specific regression remain unverified; the two existing tooling
+warnings about pgserver runtime paths and Starlette's test client remain non-fatal.
+
 Completed locally on 24 October 2026. No push, merge, deployment or live Supabase
 migration was performed. Work stops here before patient workflow implementation,
 as requested.

@@ -31,12 +31,15 @@ def postgres(tmp_path_factory):
     command.upgrade(cfg, "head")
     admin = create_engine(url, hide_parameters=True)
     with admin.begin() as c:
-        c.execute(text("CREATE ROLE test_runtime LOGIN NOSUPERUSER NOBYPASSRLS"))
-        c.execute(text("GRANT dhanvantari_api TO test_runtime"))
+        c.execute(
+            text("""CREATE ROLE dhanvantari_runtime LOGIN INHERIT NOSUPERUSER
+                       NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS""")
+        )
+        c.execute(text("GRANT dhanvantari_api TO dhanvantari_runtime"))
     # Unix-socket connection using the generated test login (no shared credentials).
     from sqlalchemy.engine import make_url
 
-    runtime_url = make_url(url).set(username="test_runtime")
+    runtime_url = make_url(url).set(username="dhanvantari_runtime")
     runtime = create_engine(runtime_url, hide_parameters=True)
     yield admin, runtime, cfg
     runtime.dispose()

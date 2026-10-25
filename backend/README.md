@@ -46,6 +46,13 @@ API login; automated tests use a local fake Auth adapter and real temporary Post
    from your project's Connect panel; do not disable TLS verification. Passwords in
    URLs must be URL-encoded.
 
+   The reviewed runtime-isolation implementation requires revision `0003`.
+   Its hierarchy is runtime LOGIN -> `dhanvantari_api` ->
+   `dhanvantari_clinical_actor`, with no shared `authenticated` membership.
+   Applying this revision or provisioning a live login requires separate approval.
+   Keep `MIGRATION_DATABASE_URL` out of the normal server process; use a separate
+   private administrative environment for migration/provisioning commands.
+
 5. Start the application from the backend directory:
 
    ```sh
@@ -181,6 +188,13 @@ login throttling, provider failures, prescription constraints, urgent-escalation
 constraints, provisioning and append-only audits. Run as a normal non-root user.
 The packaged PostgreSQL test tooling supports the Linux environment used here;
 use WSL2 on Windows. Live Supabase Auth/network setup is a separate manual check.
+
+Runtime-isolation regressions additionally exercise an upgrade from 0002, fresh
+migrations with permissive creator defaults, ledger recreation, transactional
+rollback after ledger verification failure, role membership restrictions and
+identity cleanup across one reused pooled connection. Supabase-managed permissions
+and default ACLs are represented by fictional local objects, not a live project.
+See `database/migrations/README.md` for approval gates and pooler checks.
 
 The original browser checks remain available from the repository root with the
 frontend or backend serving port 8000:
