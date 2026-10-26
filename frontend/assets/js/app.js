@@ -1,4 +1,5 @@
 import { signIn, currentStaff, signOut, authMessage } from "./auth.js";
+import { initializeVoiceDemo } from "./voice-demo.js";
 import { patientDirectory, directoryMessage, patientDetail, patientRegistration, patientReadMessage } from "./patients-api.js";
 import {
   languages,
@@ -36,7 +37,9 @@ function notify(message) {
 const workspace = document.body.dataset.requiredRole;
 const destination = (role) => role === "doctor" ? "doctor.html" : "dashboard.html";
 let clearDirectory = () => {};
+let voiceDemo = { clear() {}, setPatientContext() {} };
 const hideWorkspace = () => {
+  voiceDemo.clear();
   clearDirectory();
   if (!workspace) return;
   $("#main").hidden = true;
@@ -213,6 +216,7 @@ function initializeWorkspace(staff) {
     }
     $("#greeting-name").textContent = staff.display_name;
     $("#dashboard-language").textContent = languages[state.language] || "Not selected";
+    voiceDemo = initializeVoiceDemo($("#voice-demo"));
     initializeDirectory();
   }
 
@@ -413,6 +417,7 @@ function initializePatientViewer({ blocked, denied }) {
   let generation = 0;
   let pending;
   function clear() {
+    voiceDemo.clear();
     generation++;
     pending?.abort();
     status.replaceChildren();
@@ -469,6 +474,7 @@ function initializePatientViewer({ blocked, denied }) {
       const detail = state.care_access === "enabled" ? await patientDetail(id, { signal: pending.signal }) : null;
       if (version !== generation) return;
       renderStatus(state);
+      voiceDemo.setPatientContext({ language: state.preferred_language, careAccess: state.care_access });
       if (detail) fields(clinical, "Patient details", [["Name", detail.name], ["Age", detail.age],
         ["Age recorded on", detail.age_recorded_on], ["Sex", detail.sex],
         ["Contact reference", detail.contact_reference], ["History", detail.history],

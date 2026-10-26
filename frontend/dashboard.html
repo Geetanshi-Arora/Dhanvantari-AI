@@ -155,6 +155,97 @@
             <span class="pill">NO LIVE CLINICAL SERVICES</span>
           </aside>
         </div>
+        <section class="panel voice-demo-panel" id="voice-demo" aria-labelledby="voice-demo-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">A VOICE, WITH NURSE REVIEW</p>
+              <h2 id="voice-demo-title">Voice assistance preview</h2>
+              <p>Explore the workflow with fictional practice text. No microphone, provider or audio playback is connected.</p>
+            </div>
+            <span class="pill">DEMONSTRATION ONLY</span>
+          </div>
+          <p id="voice-demo-context" class="input-help">No record selected. Fictional practice only.</p>
+          <div class="voice-demo-settings">
+            <div class="field">
+              <label for="voice-demo-language">Patient language / fictional practice language</label>
+              <select id="voice-demo-language" aria-describedby="voice-demo-language-help">
+                <option value="">Choose a language</option>
+                <option value="en">English</option><option value="hi">Hindi</option>
+                <option value="bn">Bengali</option><option value="ta">Tamil</option>
+                <option value="te">Telugu</option><option value="mr">Marathi</option>
+                <option value="gu">Gujarati</option><option value="pa">Punjabi</option>
+              </select>
+              <p class="input-help" id="voice-demo-language-help">A selected record keeps its own language. These examples do not establish provider language support.</p>
+            </div>
+            <div class="field">
+              <label for="voice-demo-scenario">Fictional practice scenario</label>
+              <select id="voice-demo-scenario" aria-describedby="voice-demo-safety">
+                <option value="unavailable">Not available</option>
+                <option value="ready">Ready — mock demonstration only</option>
+                <option value="consent">Missing separate voice permission</option>
+                <option value="language">Provider language unavailable</option>
+                <option value="backend">Backend capability disabled</option>
+              </select>
+              <p class="input-help">Scenario selection never records consent or enables a live feature.</p>
+            </div>
+          </div>
+          <div class="notice compact" id="voice-demo-safety">
+            <strong>Live voice remains unavailable.</strong> Separate approved recording and external-processing permission is not configured.
+            Care, uploads and future-AI consent do not grant voice permission. STT and TTS language support are unverified; backend processing is disabled.
+          </div>
+          <div class="voice-demo-grid">
+            <section class="voice-demo-card" aria-labelledby="voice-capture-title">
+              <div class="voice-demo-step"><span aria-hidden="true">01</span> LISTEN · SIMULATION</div>
+              <h3 id="voice-capture-title">A calm place to begin</h3>
+              <div class="voice-demo-mic" aria-hidden="true">
+                <svg width="32" height="40" viewBox="0 0 32 40" fill="none"><rect x="10" y="2" width="12" height="23" rx="6" stroke="currentColor" stroke-width="2"/><path d="M4 18v3a12 12 0 0 0 24 0v-3M16 33v5M10 38h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <p class="voice-demo-stage" id="voice-demo-stage" role="status" aria-live="polite" aria-atomic="true">Not available</p>
+              <p id="voice-demo-reason" class="input-help">Choose a fictional practice scenario. No audio is captured.</p>
+              <p class="voice-demo-language">Language: <strong id="voice-demo-language-label">No language selected</strong></p>
+              <div class="voice-demo-actions">
+                <button class="button small" type="button" id="voice-demo-start" disabled>Start simulation</button>
+                <button class="button small secondary" type="button" id="voice-demo-stop" disabled>Stop simulation</button>
+                <button class="text-button" type="button" id="voice-demo-reveal" disabled>Show mock transcript</button>
+              </div>
+              <button class="button small secondary" type="button" id="voice-live-record" disabled aria-describedby="voice-demo-safety">Live microphone unavailable</button>
+            </section>
+            <section class="voice-demo-card" aria-labelledby="voice-review-title">
+              <div class="voice-demo-step"><span aria-hidden="true">02</span> REVIEW · NURSE CONTROL</div>
+              <h3 id="voice-review-title">Your review comes first</h3>
+              <p class="voice-demo-language">Transcript language: <strong id="voice-demo-review-language">No language selected</strong></p>
+              <p class="input-help">Fixed fictional text only. Do not type real patient information.</p>
+              <div id="voice-demo-transcript" hidden>
+                <h4 id="voice-original-label">Original mock transcript</h4>
+                <p id="voice-demo-original" class="voice-demo-original" aria-labelledby="voice-original-label"></p>
+                <label for="voice-demo-correction">Nurse correction — fictional text only</label>
+                <textarea id="voice-demo-correction" rows="4" maxlength="8000" autocomplete="off" spellcheck="false" disabled aria-describedby="voice-demo-review-status"></textarea>
+              </div>
+              <p id="voice-demo-review-status" class="input-help" role="status" aria-live="polite" tabindex="-1">Unverified · fictional example only.</p>
+              <div class="voice-demo-actions">
+                <button class="button small secondary" type="button" id="voice-demo-apply" disabled>Apply mock review</button>
+                <button class="button small" type="button" id="voice-demo-confirm" disabled>Confirm mock transcript</button>
+              </div>
+              <p class="input-help">Applying a review and confirming are separate actions. Neither approves diagnosis or treatment.</p>
+            </section>
+            <section class="voice-demo-card" aria-labelledby="voice-output-title">
+              <div class="voice-demo-step"><span aria-hidden="true">03</span> RESPOND · TEXT PREVIEW</div>
+              <h3 id="voice-output-title">In the patient’s language</h3>
+              <p class="voice-demo-language">Preview language: <strong id="voice-demo-output-language">No language selected</strong></p>
+              <p class="input-help">After confirmation, preview the reviewed fictional text. No speech is synthesized, translated or played.</p>
+              <p id="voice-demo-output" class="voice-demo-original" role="status" aria-live="polite">No speech has been generated or played.</p>
+              <div class="voice-demo-actions">
+                <button class="button small secondary" type="button" id="voice-demo-preview" disabled>Show mock text preview</button>
+                <button class="button small secondary" type="button" id="voice-live-play" disabled aria-describedby="voice-demo-safety">Live playback unavailable</button>
+              </div>
+              <p class="input-help">Text preview does not authorize playback or clinical use.</p>
+            </section>
+          </div>
+          <div class="voice-demo-footer">
+            <span class="input-help">Nothing is saved or sent. Practice changes clear when you switch records, close a record or leave the workspace.</span>
+            <button class="text-button" type="button" id="voice-demo-reset">Reset mock workflow</button>
+          </div>
+        </section>
       </section>
     </main>
     <footer>

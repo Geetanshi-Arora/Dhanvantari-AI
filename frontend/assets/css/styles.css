@@ -1580,3 +1580,130 @@ body {
   );
   background-attachment: fixed;
 }
+
+/* Voice practice is a disconnected preview; existing theme tokens stay unchanged. */
+.voice-demo-panel {
+  margin-top: 28px;
+}
+.voice-demo-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 20px 0;
+}
+.voice-demo-settings .field {
+  min-width: 0;
+}
+.voice-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+.voice-demo-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(155deg, #f5fbff, #faf6ff 65%, #fff7fb);
+}
+.voice-demo-card h3 {
+  margin: 20px 0 12px;
+}
+.voice-demo-card h4 {
+  margin: 16px 0 8px;
+}
+.voice-demo-step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--primary);
+}
+.voice-demo-step span {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e9e0fa;
+}
+.voice-demo-mic {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin: 22px auto;
+  border: 1px solid #d8c9f3;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dff3ff, #e5d9fc, #f8deed);
+  color: var(--primary);
+}
+[data-voice-stage="recording"] .voice-demo-mic {
+  outline: 5px solid #f3d6e9;
+  outline-offset: 5px;
+}
+.voice-demo-stage {
+  color: var(--text);
+  font-weight: 650;
+}
+.voice-demo-language {
+  font-size: 13px;
+}
+.voice-demo-original {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.voice-demo-card textarea {
+  width: 100%;
+  resize: vertical;
+  margin-top: 8px;
+}
+.voice-demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.voice-demo-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+@media (max-width: 1100px) {
+  .voice-demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .voice-demo-settings {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .voice-demo-card {
+    padding: 20px 16px;
+  }
+}
+.voice-demo-panel button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.voice-demo-panel .button.secondary {
+  background: #fff;
+  color: var(--primary);
+  border: 1px solid #d8c9f3;
+  box-shadow: none;
+}
