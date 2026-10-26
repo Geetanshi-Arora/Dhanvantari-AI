@@ -93,7 +93,7 @@ def test_write_commands_protect_ledger_before_commit(migration_db, operation, fa
         c.execute(text("GRANT UPDATE ON public.alembic_version TO authenticated"))
         before_acl = acl(c)
 
-    expected_revision = {"upgrade": "0003", "noop_upgrade": "0002", "stamp": "0001"}[operation]
+    expected_revision = {"upgrade": "0004", "noop_upgrade": "0002", "stamp": "0001"}[operation]
 
     def safeguard(connection):
         assert connection.in_transaction()
@@ -155,7 +155,7 @@ def test_upgrade_preserves_policies_and_managed_permissions(migration_db):
         ).all()
     command.upgrade(cfg, "head")
     with engine.connect() as c:
-        assert c.execute(text("SELECT version_num FROM public.alembic_version")).scalar() == "0003"
+        assert c.execute(text("SELECT version_num FROM public.alembic_version")).scalar() == "0004"
         assert (
             c.execute(
                 text("SELECT pg_has_role('dhanvantari_api','authenticated','MEMBER')")
@@ -216,7 +216,7 @@ def test_fresh_upgrade_and_recreated_ledger_are_protected(migration_db):
     with engine.connect() as c:
         assert acl(c) == original_acl
         assert (
-            c.execute(text("SELECT count(*) FROM pg_tables WHERE schemaname='app'")).scalar() == 20
+            c.execute(text("SELECT count(*) FROM pg_tables WHERE schemaname='app'")).scalar() == 22
         )
 
 
@@ -349,7 +349,7 @@ def test_non_superuser_migration_administrator(migration_db, monkeypatch):
     monkeypatch.setenv("MIGRATION_DATABASE_URL", url.render_as_string(hide_password=False))
     command.upgrade(cfg, "head")
     with engine.connect() as c:
-        assert c.execute(text("SELECT version_num FROM public.alembic_version")).scalar() == "0003"
+        assert c.execute(text("SELECT version_num FROM public.alembic_version")).scalar() == "0004"
         assert (
             c.execute(
                 text("""SELECT pg_get_userbyid(relowner) FROM pg_class

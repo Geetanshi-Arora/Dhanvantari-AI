@@ -2,11 +2,12 @@ import os
 from pathlib import Path
 
 from alembic import context
-from app.db.migration_security import protect_migration_ledger
-from app.models import clinical  # noqa: F401
-from app.models.foundation import Base
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+
+from app.db.migration_security import protect_migration_ledger
+from app.models import clinical, registration  # noqa: F401
+from app.models.foundation import Base
 
 
 def run_migrations():

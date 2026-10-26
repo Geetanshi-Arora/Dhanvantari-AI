@@ -50,7 +50,7 @@ def test_schema_all_tables_rls_and_restricted_owner(dbs):
           FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
           JOIN pg_roles r ON r.oid=c.relowner WHERE n.nspname='app' AND c.relkind='r'""")
         ).all()
-        assert len(rows) == 20
+        assert len(rows) == 22
         assert all(rls and owner == "app_owner" for _, rls, owner in rows)
     check_runtime_role(dbs[1])
     with pytest.raises(RuntimeError):

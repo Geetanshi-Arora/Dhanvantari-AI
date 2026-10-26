@@ -30,15 +30,16 @@ def test_sensitive_patient_data_requires_current_consent(dbs):
             db.execute(text("SELECT history FROM app.patients")).scalar_one() == "Fictional history"
         )
     for operation in ["UPDATE app.consents SET granted=false", "DELETE FROM app.consents"]:
-        with dbs[0].begin() as c:
+        # Decision history is immutable even for ordinary administrator DML.
+        with pytest.raises(DBAPIError), dbs[0].begin() as c:
             c.execute(text(operation))
-        with actor_session(dbs[1], NURSE) as db:
-            assert (
-                db.execute(
-                    text("SELECT history,allergies,current_medicines FROM app.patients")
-                ).all()
-                == []
-            )
+    with dbs[0].begin() as c:
+        c.execute(text("UPDATE app.consents SET revoked_at=now() WHERE id=:id"), {"id": consent})
+    with actor_session(dbs[1], NURSE) as db:
+        assert (
+            db.execute(text("SELECT history,allergies,current_medicines FROM app.patients")).all()
+            == []
+        )
 
 
 def test_configuration_and_startup_tracebacks_redact_secrets(settings, dbs):
