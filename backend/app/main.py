@@ -14,11 +14,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.config import Settings, load_runtime_settings
-from app.core.http import AuthBodyLimit, PatientBodyLimit
+from app.core.http import AuthBodyLimit, PatientBodyLimit, VoiceBodyLimit
 from app.core.runtime_credentials import runtime_database_url
 from app.db.session import check_runtime_role, make_engine
 from app.routes.auth import router
 from app.routes.patients import router as patient_router
+from app.routes.voice import VoiceRouteBindings
+from app.routes.voice import router as voice_router
 from app.services.audit import audit
 from app.services.patients import PatientService
 from app.services.supabase_auth import SupabaseAuth
@@ -54,9 +56,12 @@ def _create_app(settings: Settings | None = None, *, engine=None, auth=None):
     )
     app.add_middleware(AuthBodyLimit)
     app.add_middleware(PatientBodyLimit)
+    app.add_middleware(VoiceBodyLimit)
     app.state.settings = settings
     app.state.engine = db_engine
     app.state.patient_service = PatientService(db_engine)
+    # No provider, voice consent adapter or workflow storage is wired at startup.
+    app.state.voice_bindings = VoiceRouteBindings()
     app.state.cipher = Fernet(settings.session_encryption_key.get_secret_value().encode())
     app.state.auth = auth if auth is not None else SupabaseAuth(settings, client)
     app.add_middleware(
@@ -133,6 +138,7 @@ def _create_app(settings: Settings | None = None, *, engine=None, auth=None):
 
     app.include_router(router)
     app.include_router(patient_router)
+    app.include_router(voice_router)
     app.mount(
         "/",
         StaticFiles(directory=Path(__file__).resolve().parents[2] / "frontend", html=True),

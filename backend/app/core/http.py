@@ -48,3 +48,24 @@ class PatientBodyLimit(AuthBodyLimit):
 
     def __init__(self, app):
         super().__init__(app, limit=32768)
+
+
+class VoiceBodyLimit(AuthBodyLimit):
+    """Bound base64 audio to 4 MiB decoded, plus small JSON metadata overhead.
+
+    All other voice writes have a smaller 32 KiB ceiling. Both bounds count the
+    actual ASGI stream and do not trust Content-Length or transfer encoding.
+    """
+
+    prefix = "/api/v1/voice"
+    audio_json_limit = 4 * ((4 * 1024 * 1024 + 2) // 3) + 16384
+
+    def __init__(self, app):
+        super().__init__(app, limit=32768)
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["path"].endswith("/transcriptions"):
+            audio = AuthBodyLimit(self.app, limit=self.audio_json_limit)
+            audio.prefix = self.prefix
+            return await audio(scope, receive, send)
+        return await super().__call__(scope, receive, send)
