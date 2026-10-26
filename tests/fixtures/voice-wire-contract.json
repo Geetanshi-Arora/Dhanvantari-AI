@@ -1,0 +1,128 @@
+{
+  "description": "NON-APPROVED FICTIONAL TEST DATA ONLY. Generated silent PCM; no real recording, approval, credential or provider language-support claim.",
+  "context": {
+    "patient_id": "20000000-0000-4000-8000-000000000001",
+    "visit_id": "30000000-0000-4000-8000-000000000001",
+    "language": "hi"
+  },
+  "actor_id": "10000000-0000-4000-8000-000000000001",
+  "http_request_ids": [
+    "40000000-0000-4000-8000-000000000001",
+    "40000000-0000-4000-8000-000000000002",
+    "40000000-0000-4000-8000-000000000003",
+    "40000000-0000-4000-8000-000000000004"
+  ],
+  "transcription": {
+    "path": "/api/v1/voice/patients/20000000-0000-4000-8000-000000000001/visits/30000000-0000-4000-8000-000000000001/transcriptions",
+    "request": {
+      "language": "hi",
+      "media_type": "audio/wav",
+      "byte_count": 76,
+      "duration_ms": 1,
+      "filename": "fictional.wav",
+      "audio_base64": "UklGRkQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "response": {
+      "request_id": "40000000-0000-4000-8000-000000000001",
+      "patient_id": "20000000-0000-4000-8000-000000000001",
+      "visit_id": "30000000-0000-4000-8000-000000000001",
+      "language": "hi",
+      "provider": "gnani",
+      "original_text": "FICTIONAL CONTRACT TRANSCRIPT ONLY. Not patient information.",
+      "created_at": "2026-01-01T00:00:00Z",
+      "state": "unverified"
+    }
+  },
+  "correction": {
+    "path": "/api/v1/voice/patients/20000000-0000-4000-8000-000000000001/visits/30000000-0000-4000-8000-000000000001/transcripts/40000000-0000-4000-8000-000000000001/review",
+    "request": {
+      "language": "hi",
+      "expected_revision": 0,
+      "action": "correct",
+      "corrected_text": "FICTIONAL NURSE CORRECTION ONLY. Not clinical advice."
+    },
+    "response": {
+      "draft": {
+        "request_id": "40000000-0000-4000-8000-000000000001",
+        "patient_id": "20000000-0000-4000-8000-000000000001",
+        "visit_id": "30000000-0000-4000-8000-000000000001",
+        "language": "hi",
+        "provider": "gnani",
+        "original_text": "FICTIONAL CONTRACT TRANSCRIPT ONLY. Not patient information.",
+        "created_at": "2026-01-01T00:00:00Z",
+        "state": "unverified"
+      },
+      "reviews": [
+        {
+          "revision": 1,
+          "nurse_id": "10000000-0000-4000-8000-000000000001",
+          "reviewed_at": "2026-01-01T00:00:00Z",
+          "action": {
+            "expected_revision": 0,
+            "action": "correct",
+            "corrected_text": "FICTIONAL NURSE CORRECTION ONLY. Not clinical advice."
+          }
+        }
+      ],
+      "state": "nurse_corrected"
+    }
+  },
+  "confirmation": {
+    "path": "/api/v1/voice/patients/20000000-0000-4000-8000-000000000001/visits/30000000-0000-4000-8000-000000000001/transcripts/40000000-0000-4000-8000-000000000001/review",
+    "request": {
+      "language": "hi",
+      "expected_revision": 1,
+      "action": "confirm"
+    },
+    "response": {
+      "draft": {
+        "request_id": "40000000-0000-4000-8000-000000000001",
+        "patient_id": "20000000-0000-4000-8000-000000000001",
+        "visit_id": "30000000-0000-4000-8000-000000000001",
+        "language": "hi",
+        "provider": "gnani",
+        "original_text": "FICTIONAL CONTRACT TRANSCRIPT ONLY. Not patient information.",
+        "created_at": "2026-01-01T00:00:00Z",
+        "state": "unverified"
+      },
+      "reviews": [
+        {
+          "revision": 1,
+          "nurse_id": "10000000-0000-4000-8000-000000000001",
+          "reviewed_at": "2026-01-01T00:00:00Z",
+          "action": {
+            "expected_revision": 0,
+            "action": "correct",
+            "corrected_text": "FICTIONAL NURSE CORRECTION ONLY. Not clinical advice."
+          }
+        },
+        {
+          "revision": 2,
+          "nurse_id": "10000000-0000-4000-8000-000000000001",
+          "reviewed_at": "2026-01-01T00:00:00Z",
+          "action": {
+            "expected_revision": 1,
+            "action": "confirm",
+            "corrected_text": null
+          }
+        }
+      ],
+      "state": "nurse_confirmed"
+    }
+  },
+  "synthesis": {
+    "path": "/api/v1/voice/patients/20000000-0000-4000-8000-000000000001/visits/30000000-0000-4000-8000-000000000001/synthesis",
+    "request": {
+      "language": "hi",
+      "media_type": "audio/wav",
+      "text": "FICTIONAL NURSE CORRECTION ONLY. Not clinical advice."
+    },
+    "audio_base64": "UklGRoQAAABXQVZFZm10IBAAAAABAAEAgLsAAAB3AQACABAAZGF0YWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "headers": {
+      "Content-Type": "audio/wav",
+      "Content-Disposition": "attachment; filename=\"voice-audio.bin\"",
+      "X-Voice-Playback-Authorized": "false",
+      "X-Voice-Request-ID": "40000000-0000-4000-8000-000000000004"
+    }
+  }
+}
