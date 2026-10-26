@@ -5,6 +5,7 @@ external URL, DNS lookup, TCP connection, existing cluster or Docker is used.
 """
 
 import atexit
+import errno
 import importlib.util
 import logging
 import os
@@ -12,6 +13,7 @@ import pwd
 import secrets
 import shutil
 import socket
+import stat
 import subprocess
 import tempfile
 from contextlib import ExitStack, contextmanager
@@ -32,6 +34,177 @@ DB_ENV_NAMES = {"DATABASE_URL", "MIGRATION_DATABASE_URL", "SQLALCHEMY_DATABASE_U
 
 class HarnessError(RuntimeError):
     """Fixed messages only; never attach a URL or underlying exception."""
+
+
+def _safe_startup_log(directory, owner_uid):
+    """Return fixed acquisition status and bounded bytes only from a safe owned log."""
+    descriptors = []
+    try:
+        if (
+            not isinstance(directory, Path)
+            or directory.parent != Path("/tmp")
+            or not directory.name.startswith("dhanvantari-pg-")
+        ):
+            return "unsafe", None
+        flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW
+        parent = os.open("/tmp", flags | os.O_DIRECTORY)
+        descriptors.append(parent)
+        owned = os.open(directory.name, flags | os.O_DIRECTORY, dir_fd=parent)
+        descriptors.append(owned)
+        metadata = os.fstat(owned)
+        if (
+            not stat.S_ISDIR(metadata.st_mode)
+            or metadata.st_uid != owner_uid
+            or metadata.st_mode & 0o077
+        ):
+            return "unsafe", None
+        log = os.open("postgres.log", flags | os.O_NONBLOCK, dir_fd=owned)
+        descriptors.append(log)
+        before = os.fstat(log)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_uid != owner_uid
+            or before.st_mode & 0o077
+            or before.st_nlink != 1
+            or before.st_size < 0
+        ):
+            return "unsafe", None
+        if before.st_size > 8192:
+            return "oversized", None
+        data = os.read(log, 8193)
+        after = os.fstat(log)
+        if len(data) > 8192:
+            return "oversized", None
+        if (
+            len(data) != before.st_size
+            or after.st_size != before.st_size
+            or after.st_mtime_ns != before.st_mtime_ns
+        ):
+            return "changed", None
+        data.decode("utf-8")  # Reject malformed log text without emitting it.
+        return "available", data
+    except FileNotFoundError:
+        return "missing", None
+    except OSError as error:
+        return ("unsafe" if error.errno in {errno.ELOOP, errno.ENOTDIR} else "unreadable"), None
+    except AttributeError:
+        # Required no-follow/platform facilities unavailable: never use weaker flags.
+        return "unsafe", None
+    except Exception:
+        return "unreadable", None
+    finally:
+        for descriptor in reversed(descriptors):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
+def _startup_diagnostic(result, directory, owner):
+    """Only allowlisted statuses/categories and a bounded integer leave this function.
+
+    Inspect each source independently; missing/unsafe logs cannot hide recognized
+    safe stderr. Invalid/oversized sources contribute no text to classification.
+    Invalid return codes use -1 and never authorize classification. This bounds
+    inspection, not subprocess.PIPE's existing capture allocation in _run().
+    """
+    code, category = -1, "unknown"
+    stdout_status, stderr_status, log_status = "invalid", "invalid", "unreadable"
+    classification_status = "no_match"
+    try:
+        sources = []
+        statuses = []
+        for attribute in ("stdout", "stderr"):
+            value = getattr(result, attribute, None)
+            if type(value) is not bytes:
+                status = "invalid"
+            elif len(value) > 8192:
+                status = "oversized"
+            elif not value:
+                status = "empty"
+            else:
+                try:
+                    decoded = value.decode("utf-8").lower()
+                except UnicodeDecodeError:
+                    status = "invalid"
+                else:
+                    status = "usable"
+                    sources.append(decoded)
+            statuses.append(status)
+        stdout_status, stderr_status = statuses
+        raw_code = result.returncode
+        if type(raw_code) is int and (1 <= raw_code <= 255 or -64 <= raw_code < 0):
+            code = raw_code
+            try:
+                uid = owner.pw_uid if owner is not None else os.geteuid()
+                acquisition = _safe_startup_log(directory, uid)
+                if type(acquisition) is tuple and len(acquisition) == 2:
+                    status, data = acquisition
+                    if status in {
+                        "available",
+                        "missing",
+                        "unsafe",
+                        "unreadable",
+                        "oversized",
+                        "changed",
+                    }:
+                        log_status = status
+                        # Never inspect rejected data, even if a faulty reader returns it.
+                        if status == "available":
+                            if type(data) is not bytes:
+                                log_status = "unreadable"
+                            elif len(data) > 8192:
+                                log_status = "oversized"
+                            else:
+                                try:
+                                    sources.append(data.decode("utf-8").lower())
+                                except UnicodeDecodeError:
+                                    log_status = "unreadable"
+            except Exception:
+                log_status = "unreadable"
+            patterns = {
+                "permission_denied": ("permission denied", "operation not permitted"),
+                "socket_error": (
+                    "could not create unix-domain socket",
+                    "could not bind unix-domain socket",
+                    "could not create socket",
+                    "could not bind socket",
+                    "could not listen on any",
+                ),
+                "shared_memory_error": (
+                    "could not create shared memory",
+                    "could not map anonymous shared memory",
+                    "could not resize shared memory",
+                    "could not open shared memory",
+                    "could not create semaphore",
+                ),
+                "configuration_error": (
+                    "unrecognized configuration parameter",
+                    "invalid value for parameter",
+                    "syntax error in file",
+                ),
+                "startup_timeout": (
+                    "server did not start in time",
+                    "timed out waiting for server startup",
+                ),
+            }
+            matches = {
+                name
+                for name, phrases in patterns.items()
+                if any(phrase in source for source in sources for phrase in phrases)
+            }
+            if len(matches) == 1:
+                category = matches.pop()
+                classification_status = "single_match"
+            elif len(matches) > 1:
+                classification_status = "multiple_matches"
+    except Exception:
+        category, classification_status = "unknown", "no_match"
+    return (
+        f"stage=pg_ctl_start return_code={code} category={category} "
+        f"stdout_status={stdout_status} stderr_status={stderr_status} "
+        f"log_status={log_status} classification_status={classification_status}"
+    )
 
 
 def reject_external_environment(environment, expected_migration_url=None):
@@ -228,7 +401,9 @@ class DisposablePostgres:
                 ],
             )
             if result.returncode:
-                raise HarnessError("Disposable cluster startup failed")
+                raise HarnessError(
+                    _startup_diagnostic(result, self.directory, self.owner)
+                ) from None
             self._install_guards()
             return self
         except BaseException:
@@ -302,7 +477,7 @@ class DisposablePostgres:
         return engine
 
     def migrate(self, revision):
-        if revision not in {"0003", "0004"}:
+        if revision not in {"0003", "0004", "0005"}:
             raise HarnessError("Unreviewed migration target")
         reject_external_environment(os.environ)
         url = self.url().render_as_string(hide_password=False)
