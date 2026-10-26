@@ -47,6 +47,14 @@ export async function currentStaff() {
   return profile(await request("me"));
 }
 
+/** Reuse the existing cookie session and CSRF endpoint; no token persistence. */
+export async function csrfToken() {
+  const result = await request("csrf");
+  if (!result || typeof result.csrf_token !== "string" || !result.csrf_token ||
+      result.csrf_token.length > 256 || /[\r\n\0]/.test(result.csrf_token)) throw new AuthError();
+  return result.csrf_token;
+}
+
 export async function signOut() {
   let token;
   try {

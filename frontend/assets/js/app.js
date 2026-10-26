@@ -1,5 +1,6 @@
 import { signIn, currentStaff, signOut, authMessage } from "./auth.js";
 import { initializeVoiceDemo } from "./voice-demo.js";
+import { createVoiceClient } from "./voice-api.js";
 import { patientDirectory, directoryMessage, patientDetail, patientRegistration, patientReadMessage } from "./patients-api.js";
 import {
   languages,
@@ -38,7 +39,9 @@ const workspace = document.body.dataset.requiredRole;
 const destination = (role) => role === "doctor" ? "doctor.html" : "dashboard.html";
 let clearDirectory = () => {};
 let voiceDemo = { clear() {}, setPatientContext() {} };
+const voiceClient = createVoiceClient(); // Always disabled; no active visit or live transport is bound.
 const hideWorkspace = () => {
+  voiceClient.clear();
   voiceDemo.clear();
   clearDirectory();
   if (!workspace) return;
@@ -417,6 +420,7 @@ function initializePatientViewer({ blocked, denied }) {
   let generation = 0;
   let pending;
   function clear() {
+    voiceClient.clear();
     voiceDemo.clear();
     generation++;
     pending?.abort();
