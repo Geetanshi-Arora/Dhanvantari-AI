@@ -56,19 +56,19 @@
             </h1>
             <p>Here’s a little overview of your community care workspace.</p>
           </div>
-          <a class="button" href="language.html">＋ Register demo patient</a>
+          <button class="button" type="button" disabled>Registration unavailable</button>
         </div>
         <div class="notice compact">
-          <strong>Demo workspace</strong> · All records are synthetic. New
-          entries last only for this browser tab. Do not enter real patient
-          information.
+          <strong>Development workspace</strong> · Fictional patient records only.
+          Registration is unavailable until approved consent notices are configured.
+          Do not enter real patient information.
         </div>
         <div class="stats-grid">
           <article class="stat">
             <span class="stat-icon blue">♧</span>
-            <p>Demo patients</p>
-            <strong id="patient-count">3</strong
-            ><small>Synthetic sample records</small>
+            <p>Loaded patient records</p>
+            <strong id="patient-count">—</strong
+            ><small>Loaded records, not a database total</small>
           </article>
           <article class="stat">
             <span class="stat-icon lavender">◷</span>
@@ -89,27 +89,32 @@
           </article>
         </div>
         <div class="dashboard-grid">
-          <section class="panel">
+          <section class="panel" id="patient-directory" aria-busy="true">
             <div class="panel-heading">
               <div>
-                <h2>Demo patient directory</h2>
-                <p>Your sample community, at a glance.</p>
+                <h2>Authorized patient directory</h2>
+                <p>Records available to your verified nurse account.</p>
               </div>
               <span class="pill">SYNTHETIC DATA</span>
             </div>
             <label class="search-label" for="patient-search"
-              >Search by demo patient name or ID</label
+              >Search loaded records by name or reference</label
             ><input
               type="search"
               id="patient-search"
-              placeholder="Search demo patients…"
+              placeholder="Search loaded records…"
+              disabled
             />
-            <div class="table-scroll">
+            <p id="directory-status" role="status" aria-live="polite">Loading authorized patient records…</p>
+            <p id="directory-error" class="error" role="alert" hidden></p>
+            <button id="patient-retry" class="text-button" type="button" hidden>Retry directory</button>
+            <p id="directory-empty" hidden>No authorized patient records are available.</p>
+            <div class="table-scroll" id="directory-table" hidden>
               <table>
                 <thead>
                   <tr>
                     <th>Patient</th>
-                    <th>Patient ID</th>
+                    <th>Patient reference</th>
                     <th>Age</th>
                     <th>Language</th>
                     <th>Record</th>
@@ -118,23 +123,28 @@
                 <tbody id="patient-rows"></tbody>
               </table>
             </div>
-            <p id="empty-search" hidden>No demo patients match your search.</p>
-            <p class="input-help">
-              Consultation history and clinical records are planned for later
-              phases.
-            </p>
+            <p id="empty-search" hidden>No loaded records match your search.</p>
+            <button id="patient-load-more" class="button small" type="button" hidden>Load more</button>
+            <p class="input-help">Select a record to view permitted details and registration status. No clinical actions are available.</p>
+            <section id="patient-view" aria-labelledby="patient-view-heading" hidden>
+              <div class="panel-heading">
+                <h3 id="patient-view-heading">Patient record</h3>
+                <button id="patient-view-close" class="text-button" type="button">Close record</button>
+              </div>
+              <p id="patient-view-message" role="status" aria-live="polite"></p>
+              <div id="patient-registration-content"></div>
+              <div id="patient-detail-content"></div>
+            </section>
           </section>
           <aside class="panel next-panel">
             <span class="feature-icon">✧</span>
             <p class="eyebrow">YOUR NEXT STEP</p>
             <h2>A thoughtful start<br />to every visit.</h2>
             <p>
-              Choose a language, add a fictional patient, and explore a simpler
-              registration experience.
+              Browse authorized fictional patient records. New registration and
+              consent submissions remain unavailable until approved notices are configured.
             </p>
-            <a class="button full" href="language.html"
-              >Start a demo registration →</a
-            >
+            <button class="button full" type="button" disabled>Registration unavailable</button>
             <div class="next-divider"></div>
             <h3>Coming in later phases</h3>
             <ul class="roadmap-list">

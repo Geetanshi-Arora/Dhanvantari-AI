@@ -49,21 +49,21 @@
       <section class="page-content">
         <div class="page-title">
           <p class="eyebrow">A THOUGHTFUL START TO CARE</p>
-          <h1>Meet your demo patient.</h1>
-          <p>Practice registration with fictional information only.</p>
+          <h1>Patient registration preview.</h1>
+          <p>Adults providing their own consent only · Fictional information only.</p>
         </div>
         <div class="registration-layout">
-          <form id="registration-form" class="panel registration-form">
+          <form id="registration-form" class="panel registration-form" autocomplete="off" aria-describedby="registration-error">
             <div class="panel-heading">
               <div>
                 <h2>Patient information</h2>
                 <p>Fields marked * are required.</p>
               </div>
-              <span class="pill">DEMO REGISTRATION</span>
+              <span class="pill">PREVIEW ONLY</span>
             </div>
             <div class="notice compact">
-              Do not enter real personal or medical information. Nothing is sent
-              to a backend.
+              Do not enter real personal or medical information. This preview does
+              not submit or save patient information or record consent.
             </div>
             <div class="form-grid">
               <div class="field">
@@ -83,12 +83,14 @@
                   id="patient-age"
                   name="age"
                   type="number"
-                  min="0"
+                  min="18"
                   max="120"
                   step="1"
                   required
                   placeholder="e.g. 36"
+                  aria-describedby="patient-age-help"
                 />
+                <p id="patient-age-help" class="input-help">Enter a whole number from 18 to 120.</p>
               </div>
               <div class="field">
                 <label for="patient-sex"
@@ -103,8 +105,8 @@
               </div>
               <div class="field">
                 <label for="patient-language">Preferred language *</label
-                ><select id="patient-language" name="language" required>
-                  <option value="">Select a demo preference</option>
+                ><select id="patient-language" name="preferred_language" required>
+                  <option value="">Select a language</option>
                   <option value="en">English</option>
                   <option value="hi">Hindi</option>
                   <option value="bn">Bengali</option>
@@ -121,19 +123,10 @@
                   <span class="optional">(optional)</span></label
                 ><input
                   id="patient-contact"
-                  name="contact"
+                  name="contact_reference"
                   maxlength="60"
                   placeholder="e.g. DEMO-CONTACT-01"
                   autocomplete="off"
-                />
-              </div>
-              <div class="field">
-                <label for="consultation-date">Demo visit date *</label
-                ><input
-                  id="consultation-date"
-                  name="date"
-                  type="date"
-                  required
                 />
               </div>
               <div class="field wide">
@@ -143,6 +136,8 @@
                 ><textarea
                   id="patient-history"
                   name="history"
+                  disabled
+                  aria-describedby="clinical-input-help"
                   rows="3"
                   maxlength="1000"
                   placeholder="Fictional history or existing conditions only"
@@ -155,6 +150,8 @@
                 ><textarea
                   id="patient-allergies"
                   name="allergies"
+                  disabled
+                  aria-describedby="clinical-input-help"
                   rows="2"
                   maxlength="500"
                   placeholder="Fictional details; leave blank if unknown"
@@ -166,27 +163,59 @@
                   <span class="optional">(optional)</span></label
                 ><textarea
                   id="patient-medicines"
-                  name="medicines"
+                  name="current_medicines"
+                  disabled
+                  aria-describedby="clinical-input-help"
                   rows="2"
                   maxlength="500"
                   placeholder="Fictional details only"
                 ></textarea>
               </div>
             </div>
-            <label class="checkbox-label"
-              ><input type="checkbox" name="consent" required /><span
-                >I confirm this is synthetic data and acknowledge this simulated
-                consent step. *</span
-              ></label
-            >
-            <p class="input-help">
-              This checkbox demonstrates the interface; it does not record legal
-              patient consent.
+            <p id="clinical-input-help" class="input-help">
+              Clinical inputs are available only with a granted care selection in this
+              preview. Declining or clearing that selection clears these inputs.
             </p>
-            <p id="registration-error" class="error" role="alert" hidden></p>
+            <div class="panel-heading">
+              <div><h2>Consent choices — preview only</h2></div>
+            </div>
+            <p id="consent-preview-help" class="input-help">
+              Approved consent notices are not available. These choices do not record
+              patient consent. Optional unanswered choices remain unanswered.
+              Representative and guardian consent are not supported.
+            </p>
+            <div class="form-grid">
+              <div class="field wide">
+                <label for="consent-care">Care consent *</label>
+                <select id="consent-care" name="care_consent" required aria-describedby="consent-preview-help clinical-input-help">
+                  <option value="">Select grant or decline</option>
+                  <option value="granted">Granted</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="consent-uploads">Uploads consent <span class="optional">(optional)</span></label>
+                <select id="consent-uploads" name="uploads_consent" aria-describedby="consent-preview-help">
+                  <option value="">Unanswered</option>
+                  <option value="granted">Granted</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="consent-future-ai">Future AI processing consent <span class="optional">(optional)</span></label>
+                <select id="consent-future-ai" name="future_ai_consent" aria-describedby="consent-preview-help">
+                  <option value="">Unanswered</option>
+                  <option value="granted">Granted</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+            </div>
+            <p id="registration-error" class="error" role="status">
+              Registration is unavailable until approved consent notices are published.
+            </p>
             <div class="form-actions">
               <a class="secondary-link" href="dashboard.html">Cancel</a
-              ><button class="button" type="submit">Save demo patient →</button>
+              ><button class="button" type="submit" disabled aria-describedby="registration-error">Registration unavailable</button>
             </div>
           </form>
           <aside>
@@ -200,11 +229,11 @@
               <ol class="simple-steps">
                 <li>Choose a language</li>
                 <li>Add fictional patient details</li>
-                <li>View the demo directory</li>
+                <li>Preview separate consent choices</li>
               </ol>
               <div class="notice">
-                Patient IDs are generated automatically. Entries are stored
-                temporarily in this tab and cleared when you sign out.
+                Patient identifiers will be generated by the backend when registration
+                becomes available. This preview stores no patient information.
               </div>
               <p class="input-help">
                 Voice consultation, medical evidence uploads, and AI assessment

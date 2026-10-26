@@ -43,6 +43,15 @@ function check(value, message) { assert.ok(value, message); checks++; }
       errors.push("Unexpected external request");
       return route.abort();
     }
+    if (url.pathname === "/api/v1/patients") {
+      if (!server.loggedIn) return route.fulfill({ status: 401, contentType: "application/json", body: "{}" });
+      if (server.staff.role !== "nurse") return route.fulfill({ status: 403, contentType: "application/json", body: "{}" });
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        items: [{ id: "20000000-0000-4000-8000-000000000001", reference: "FICTIONAL-001",
+          name: "Adult Fictional", age: 36, age_recorded_on: "2026-01-01", preferred_language: "hi" }],
+        next_cursor: null,
+      }) });
+    }
     if (url.pathname.startsWith("/api/")) {
       const endpoint = url.pathname.slice("/api/v1/auth/".length);
       calls.push({ endpoint, method: request.method() });
@@ -139,8 +148,9 @@ function check(value, message) { assert.ok(value, message); checks++; }
     await login();
     await page.waitForURL("**/dashboard.html");
     await page.locator("#main").waitFor();
-    check(await page.locator("#patient-rows tr").count() === 3, "Nurse reaches synthetic directory");
-    check(await page.locator(".notice.compact").textContent().then((s) => s.includes("synthetic")), "Demo records remain clearly labeled");
+    await page.locator("#patient-rows tr").first().waitFor();
+    check(await page.locator("#patient-rows tr").count() === 1, "Nurse reaches authorized API directory");
+    check(await page.locator(".notice.compact").textContent().then((s) => s.includes("Fictional")), "Development records remain clearly labeled");
     await page.evaluate(async () => {
       const store = await import("/assets/js/store.js");
       store.saveState({ password: "fictional", access_token: "fictional", role: "doctor" });
@@ -151,7 +161,7 @@ function check(value, message) { assert.ok(value, message); checks++; }
     check(await page.evaluate(() => window.authFetchOptions.every((call) => call.credentials === "same-origin")), "Authentication fetches explicitly use same-origin credentials");
     check(!(await page.evaluate(() => document.cookie)).includes("dhanvantari_session"), "Session cookie is not exposed to JavaScript");
 
-    await page.getByRole("link", { name: "Register demo patient" }).click();
+    await go("language.html");
     await page.locator("#main").waitFor();
     check(await page.locator("#language-continue").isDisabled(), "Language selection required");
     await page.locator('[data-language="hi"]').click();
@@ -160,28 +170,17 @@ function check(value, message) { assert.ok(value, message); checks++; }
     await page.waitForURL("**/register.html");
     await page.locator("#main").waitFor();
     check(await page.locator("#patient-language").inputValue() === "hi", "Language preference retained");
-    await page.getByRole("button", { name: "Save demo patient" }).click();
-    check(page.url().endsWith("register.html"), "Empty registration blocked");
-    await page.getByLabel("Fictional full name").fill("   ");
-    await page.getByLabel("Age in years").fill("121");
-    check(!(await page.locator("#patient-age").evaluate((el) => el.checkValidity())), "Invalid age rejected");
-    await page.getByLabel("Age in years").fill("35");
-    await page.locator('[name="consent"]').check();
-    await page.getByRole("button", { name: "Save demo patient" }).click();
-    check(!(await page.locator("#patient-name").evaluate((el) => el.checkValidity())), "Whitespace name rejected");
-    const syntheticName = "<img src=x onerror=alert(1)> Demo";
-    await page.getByLabel("Fictional full name").fill(syntheticName);
-    await page.getByRole("button", { name: "Save demo patient" }).click();
-    await page.waitForURL("**/dashboard.html");
-    await page.locator("#main").waitFor();
-    check(await page.locator("#patient-count").textContent() === "4", "Synthetic patient saved");
-    check(await page.locator("#patient-rows img").count() === 0, "Synthetic text cannot inject HTML");
-    await page.locator("#patient-search").fill(syntheticName);
-    check(await page.locator("#patient-rows tr").count() === 1, "Patient search preserved");
+    check(await page.getByRole("button", { name: "Registration unavailable" }).isDisabled(), "Registration stays disabled without approved notices");
+    check(await page.locator("#registration-error").isVisible(), "Notice-unavailable explanation is visible");
+    await page.locator("#registration-form").evaluate((form) => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    check(page.url().endsWith("register.html"), "Programmatic submit does not save or navigate");
+    await go("dashboard.html");
+    await page.locator("#patient-rows tr").first().waitFor();
+    check(await page.locator("#patient-count").textContent() === "1", "Only authorized API records are counted");
     await page.locator("#patient-search").fill("missing");
-    check(await page.locator("#empty-search").isVisible(), "Empty search state preserved");
-    await page.reload(); await page.locator("#main").waitFor();
-    check(await page.locator("#patient-count").textContent() === "4", "Synthetic tab state survives reload");
+    check(await page.locator("#empty-search").isVisible(), "Loaded-record search has an empty state");
+    await page.reload(); await page.locator("#patient-rows tr").first().waitFor();
+    check(await page.locator("#patient-count").textContent() === "1", "Reload fetches API records without demo fallback");
 
     server.logoutStatus = 503;
     await page.getByRole("button", { name: "Sign out" }).click();
@@ -268,7 +267,7 @@ function check(value, message) { assert.ok(value, message); checks++; }
     await go("doctor.html"); await page.locator("#main").waitFor();
     check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Doctor placeholder fits mobile viewport");
     check(errors.length === 0, "No browser exceptions, missing assets or external requests");
-    console.log(`PASS: ${checks} offline browser checks; cookie API contract, role guards, logout, errors, synthetic workflows and mobile layout.`);
+    console.log(`PASS: ${checks} offline browser checks; cookie API contract, role guards, logout, errors, read-only directory, registration lock and mobile layout.`);
   } finally {
     await browser.close();
   }
