@@ -108,3 +108,154 @@ The PG16.2 harness does not verify PG17/Supabase pooler or real Auth-provider
 compatibility. HTTPX/TestClient's installed deprecation warning is also unchanged.
 The generator-based HTTP size test is complemented by the offline route suite's
 explicit ASGI multi-message boundary test (TestClient may coalesce chunks).
+
+## Phase 3E Part 1 — browser lifecycle preparation; execution BLOCKED
+
+Real browser integration testing is deferred. Preserve these safeguards while
+continuing other approved work; resumption requires a separate isolation review
+and explicit execution approval.
+
+Only `dhanvantari_browser_guard.py`, the browser opt-in gate and offline guard tests
+are prepared. No browser scenarios, patient seeds, runner script or real network
+confinement are implemented. **Do not run browser-to-backend tests yet.**
+
+Both `--run-disposable-postgres` and `--run-disposable-browser` are required. Browser
+cases are identified by `test_patient_browser.py` or the `browser_preflight` /
+`browser_lifecycle` fixture dependencies. Collection marks them skipped before any
+fixture setup; `local_pg` independently rechecks browser preflight before startup.
+This prevents a PostgreSQL dependency starting before a later browser fixture
+rejects execution. Ordinary PostgreSQL-only cases retain their existing opt-in,
+connection guards and cleanup. `dhanvantari_pg_guard.py` is unchanged.
+
+Flags are necessary but insufficient: `require_network_boundary()` always rejects
+execution, and `require_reviewed_runner()` independently rejects an unreviewed
+runner. Neither accepts an environment flag, boolean attestation or override.
+Merely installing software or adding `tests/patient-backend.cjs` cannot unlock them.
+
+Python's existing `no_network()` and exact libpq target checks remain essential,
+but they do **not** confine a Node/Chromium child. Playwright route interception,
+CSP, Chromium flags and URL policy predicates alone do not supply an enforceable
+network boundary. No such boundary is implemented or claimed by this milestone.
+A future separately reviewed implementation needs OS/platform-enforced confinement
+(for example, a fresh shared server/browser network namespace with only loopback,
+no external routes/interfaces and proven egress rejection). Do not relax the
+PostgreSQL guards or treat the cloud HTTP proxy policy as that boundary.
+
+Prepared policies/lifecycle contracts:
+
+- Parent PG/database, Node preload/module, browser, Uvicorn and application-config
+  overrides are rejected without displaying values. Child environment is restricted
+  to fixed PATH/LANG and private HOME/TMPDIR; no operator credentials are inherited.
+- The only command shape is the pinned absolute Node executable,
+  `tests/patient-backend.cjs`, and the exact generated origin. No shell, extra args,
+  arbitrary commands, SQL, administrator HTTP endpoints or control-channel input.
+  Future runner source/content and confinement launcher still need review/pinning.
+- Listener binds **only** `127.0.0.1:0`; its assigned port becomes the sole origin.
+  Uvicorn uses one worker, no reload/access logging, asyncio/h11 and real lifespan.
+- Browser policy denies external origins/navigation, every WebSocket, arbitrary
+  endpoints and patient writes. Only same-origin reads and Auth login/logout are
+  allowed. Context settings require blocked service workers/downloads and reject
+  storage state, HAR, video, tracing and additional context options. The absent
+  runner cannot enforce/export anything yet; future source review must also forbid
+  artifact-export APIs, including `storage_state()` and tracing calls.
+- No app factory, environment file, DPAPI loader or Supabase client is loaded by
+  this guard. Future fixtures must explicitly inject disposable-only settings,
+  restricted runtime engine and fictional Auth; keep approved notices empty.
+- Startup has a 10-second deadline, runner completion a 60-second deadline, and
+  shutdown waits are bounded to 5 seconds per attempt with escalation. Child stdio
+  is discarded; error messages are fixed categories. No passwords/URLs/tokens or
+  private exception contents are printed. No automatic startup/migration retry.
+- Teardown attempts runner group termination, server shutdown and socket close even
+  after partial failures. A cleanup failure retains private files and fails closed.
+  Real process-tree behavior remains unverified and must be tested before unlocking
+  execution. SIGKILL/host failure still cannot guarantee Python finalizers.
+
+Safe offline verification, from the repository root (starts no services):
+
+```sh
+PYTHONPATH=backend /workspace/Dhanvantari-AI/.venv/bin/python -B -m pytest \
+  --noconftest -p no:cacheprovider \
+  backend/tests/test_patient_browser_guard.py \
+  backend/tests/test_disposable_pg_guard.py \
+  backend/tests/test_patient_api_harness_static.py -q
+```
+
+Future command shape, **not runnable/authorized at this stage**:
+
+```sh
+cd /workspace/Dhanvantari-AI-phase2/backend
+PYTHONPATH=. /workspace/Dhanvantari-AI/.venv/bin/python -B -m pytest \
+  --confcutdir=tests/disposable -p no:cacheprovider \
+  tests/disposable/test_patient_browser.py \
+  --run-disposable-postgres --run-disposable-browser -q --tb=short
+```
+
+That test file and runner do not exist yet, and both hard blockers remain in place.
+Preparation does not authorize PostgreSQL, Uvicorn, Node or Chromium execution.
+The existing no-custom-subprocess rule remains in force: the validated fixed
+browser command is a proposed narrow exception only after separate review of its
+source, confinement and execution approval. No arbitrary subprocess is permitted.
+
+## Phase 3E Part 2C — non-executable isolated launcher proposal
+
+`dhanvantari_browser_launcher.py` prepares pure command builders and readback
+validators only. It imports no process, socket or syscall execution interface.
+`execute_plan()` retains both existing hard blockers and an additional unconditional
+rejection. A fabricated snapshot, plan or successful validator cannot enable it.
+**There is no runnable namespace bootstrap, server entrypoint or browser runner.**
+
+The earlier capability check established that an unprivileged fresh user/network
+namespace can be created. It did not establish firewall, mount, seccomp or browser
+compatibility. This milestone creates no namespace and runs no workload.
+
+Proposed sequence and boundaries:
+
+- A fixed absolute `unshare` command creates fresh user, network and PID namespaces.
+  Verify empty interfaces/routes, install IPv4/IPv6 default-DROP policies, then
+  initialize only `lo` with `127.0.0.1/8`. No veth, external route or DNS is configured.
+- Bind a newly owned `127.0.0.1:0` listener. Its assigned port must match the exact
+  approved origin. IPv4 rules permit TCP requests only to that port and established
+  replies from it; other ports and all IPv6 traffic remain denied. Strict filter
+  readback rejects additional rules, chains and non-DROP policies. These are proposed
+  rules, not evidence that this kernel accepts or enforces them.
+- Separate empty-root bubblewrap mount/PID/IPC capsules share only the fresh network
+  namespace. Each has private `/proc`, `/tmp`, `/run` and home. Staged code, runtime,
+  libraries and fonts must be reviewed copies, mounted read-only; host root, repository,
+  credential directories and host IPC sockets are excluded. Bundle validation rejects
+  symlinks, special files, multiply linked files and credential/environment paths.
+- Only the server capsule receives the exact disposable PG socket file at its
+  original generated path; the browser gets neither that socket nor a view of the
+  server's `/proc`. The existing PG connection guards and target path stay unchanged.
+  The server receives only its newly owned listener and sealed private configuration
+  descriptors; the browser receives only devnull standard streams. All inherited
+  network/proxy/management descriptors must be closed before capsule construction.
+- Fixed executable/argument profiles and a four-variable child environment exclude
+  inherited credentials, database URLs, proxies and module preloads. Workloads require
+  zero effective/permitted/inheritable/ambient/bounding capabilities, NoNewPrivs,
+  seccomp, restrictive umask and disabled core dumps. The native filter must prevent
+  namespace reentry/creation (including `clone` flags and `clone3`) and process-memory
+  access. Its actual BPF implementation and installation are **not supplied**.
+- Supervision must retain the existing bounded startup/completion/shutdown deadlines,
+  discard child output and kill/reap descendants on partial initialization failure.
+  The proposed outer PID namespace additionally requires init-death cleanup. Artifact
+  exports, storage-state files, tracing, HAR, videos and credential logs stay forbidden.
+
+Before any execution can be reviewed, implement and verify: a pinned native
+bootstrap/restriction filter; executable and bundle content manifests; descriptor
+closure/readback and sealed-config protocol; actual mount and process isolation;
+kernel firewall support/readback and exact-port denial; safe Chromium compatibility;
+and real bounded descendant cleanup. Namespace route snapshots in these tests are
+normalized policy inputs, not live OS observations. The server/runner entrypoints
+and scenarios also remain absent. Do not route the old lifecycle around its blockers.
+Flags, request interception, validator success or this proposal cannot authorize runs.
+
+Offline verification only (no databases, servers, browsers or namespaces):
+
+```sh
+PYTHONPATH=backend /workspace/Dhanvantari-AI/.venv/bin/python -B -m pytest \
+  --noconftest -p no:cacheprovider \
+  backend/tests/test_browser_launcher.py \
+  backend/tests/test_patient_browser_guard.py \
+  backend/tests/test_disposable_pg_guard.py \
+  backend/tests/test_patient_api_harness_static.py -q
+```
