@@ -140,6 +140,17 @@ class PatientDirectoryResponse(Contract):
     next_cursor: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=512)] | None
 
 
+class PatientDetailResponse(PatientDirectoryItem):
+    """Explicit projection of a care-consented fictional adult patient only."""
+
+    sex: Literal["Female", "Male", "Intersex", "Prefer not to say"] | None
+    contact_reference: Annotated[str, StringConstraints(strict=True, max_length=60)] | None
+    history: Annotated[str, StringConstraints(strict=True, max_length=1000)] | None
+    allergies: Annotated[str, StringConstraints(strict=True, max_length=500)] | None
+    current_medicines: Annotated[str, StringConstraints(strict=True, max_length=500)] | None
+    created_at: AwareDatetime
+
+
 class RegistrationStatusResponse(Contract):
     id: UUID
     reference: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=30)]

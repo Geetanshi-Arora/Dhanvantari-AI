@@ -4,13 +4,15 @@ from starlette.responses import JSONResponse
 
 
 class AuthBodyLimit:
+    prefix = "/api/v1/auth"
+
     def __init__(self, app, limit=16384):
         self.app, self.limit = app, limit
 
     async def __call__(self, scope, receive, send):
         if (
             scope["type"] != "http"
-            or not scope["path"].startswith("/api/v1/auth")
+            or not scope["path"].startswith(self.prefix)
             or scope["method"] not in {"POST", "PUT", "PATCH"}
         ):
             return await self.app(scope, receive, send)
@@ -37,3 +39,12 @@ class AuthBodyLimit:
             return await receive()
 
         await self.app(scope, replay, send)
+
+
+class PatientBodyLimit(AuthBodyLimit):
+    """Bound actual streamed patient writes before JSON parsing or authentication."""
+
+    prefix = "/api/v1/patients"
+
+    def __init__(self, app):
+        super().__init__(app, limit=32768)

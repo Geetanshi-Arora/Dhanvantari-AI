@@ -66,3 +66,45 @@ fixed category; debugging must preserve secret redaction.
 PostgreSQL 17-specific behavior and actual Supabase pooler compatibility remain
 outside this PostgreSQL 16 harness. Supabase Auth is not contacted: DB actor claims
 are fictional and API JWT/CSRF ordering remains covered by separate auth tests.
+
+## Phase 3C API integration preparation (separate execution approval required)
+
+`test_patient_api.py` adds the real FastAPI HTTP routes, service layer and migration
+0004 functions to the same guarded `local_pg` fixture. Only the Supabase Auth
+provider is fictional: login, encrypted cookie sessions, CSRF/origin checks, active
+staff checks, clinical role switching, RLS, clinical functions and audit inserts
+remain real. Each test uses a fresh cluster and explicitly injected restricted
+runtime engine. Settings never load an operator env file or DPAPI credential.
+
+Test-only notice metadata is seeded into that cluster and into the service's
+trusted validation context. It is neither approved wording nor deployment data.
+Tests cover all six endpoints, nurse/doctor/unassigned access, care decline and
+revocation, optional decisions, retries, concurrency, history, fail-closed notices,
+CSRF/origin/session rejection, body limits, audit failures and rollback. Failure
+injection triggers exist solely in the disposable cluster. A response-validation
+failure is injected after the real DB function returns to test rollback before
+commit. Auth-provider networking is never used. All existing network, driver,
+environment, exact-socket and cleanup guards remain unchanged and active.
+
+Preparation/collection performs no fixture setup or SQL. Safe collection command:
+
+```sh
+cd /workspace/Dhanvantari-AI-phase2/backend
+/workspace/Dhanvantari-AI/.venv/bin/python -B -m pytest \
+  --confcutdir=tests/disposable -p no:cacheprovider \
+  tests/disposable/test_patient_api.py --collect-only -q
+```
+
+After **separate approval only**, execute that same test file with
+`--run-disposable-postgres` instead of `--collect-only`. Do not run the ordinary
+parent conftest, supply connection overrides, enable `--showlocals`, or add a remote
+fallback. TestClient uses in-process ASGI calls and does not start an HTTP server.
+Each client/lifespan closes before fixture cleanup disposes engines, stops the
+private cluster and removes its directory. The sandbox may block TestClient's
+cross-thread event-loop wakeup; any execution permission workaround must keep the
+existing Python/libpq network guards active. No workaround is part of preparation.
+
+The PG16.2 harness does not verify PG17/Supabase pooler or real Auth-provider
+compatibility. HTTPX/TestClient's installed deprecation warning is also unchanged.
+The generator-based HTTP size test is complemented by the offline route suite's
+explicit ASGI multi-message boundary test (TestClient may coalesce chunks).

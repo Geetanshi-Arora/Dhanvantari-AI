@@ -17,6 +17,7 @@ from app.schemas.patients import (
     ConsentResponse,
     ConsentRevocationRequest,
     ConsentUpdateRequest,
+    PatientDetailResponse,
     PatientDirectoryItem,
     PatientDirectoryResponse,
     PatientRegistrationRequest,
@@ -450,3 +451,67 @@ def test_json_registration_preserves_core_validation(changes):
     ):
         with pytest.raises(ValidationError):
             method(value, context=CONTEXT)
+
+
+def detail_payload():
+    return dict(
+        id=UID,
+        reference="FICTIONAL-001",
+        name="Adult Fictional",
+        age=36,
+        age_recorded_on="2026-01-01",
+        preferred_language="hi",
+        sex=None,
+        contact_reference=None,
+        history="Fictional history",
+        allergies=None,
+        current_medicines=None,
+        created_at=NOW,
+    )
+
+
+def test_patient_detail_has_only_approved_fields_and_supports_nulls():
+    result = PatientDetailResponse(**detail_payload())
+    assert set(result.model_dump()) == {
+        "id",
+        "reference",
+        "name",
+        "age",
+        "age_recorded_on",
+        "preferred_language",
+        "sex",
+        "contact_reference",
+        "history",
+        "allergies",
+        "current_medicines",
+        "created_at",
+    }
+    assert result.allergies is None
+    assert PatientDetailResponse.model_validate_json(result.model_dump_json()) == result
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("history", "x" * 1001),
+        ("allergies", "x" * 501),
+        ("current_medicines", "x" * 501),
+        ("contact_reference", "x" * 61),
+        ("sex", "unknown"),
+        ("history", "Fictional\x00"),
+        ("created_at", datetime(2026, 1, 1)),
+        ("age", 17),
+        ("registered_by", UID),
+        ("fictional", True),
+    ],
+)
+def test_patient_detail_rejects_invalid_or_internal_fields(field, value):
+    with pytest.raises(ValidationError):
+        PatientDetailResponse(**{**detail_payload(), field: value})
+
+
+def test_patient_detail_requires_nullable_fields_to_be_explicit():
+    payload = detail_payload()
+    del payload["history"]
+    with pytest.raises(ValidationError):
+        PatientDetailResponse(**payload)
