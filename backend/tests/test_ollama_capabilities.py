@@ -1,8 +1,10 @@
 """Deterministic fictional eligibility only; no real artifacts or human approvals."""
 
-import importlib
+import os
 import socket
 import subprocess
+import sys
+from pathlib import Path
 
 import httpx
 import pytest
@@ -28,6 +30,8 @@ OPERATIONS = (
 # Synthetic digest fixtures, not hashes of real downloaded models.
 DIGEST = "a" * 64
 OTHER_DIGEST = "b" * 64
+# Only the fixed isolated-Python invocation below may bypass the parent Popen guard.
+_PYTHON_POPEN = subprocess.Popen
 
 
 @pytest.fixture(autouse=True)
@@ -249,11 +253,62 @@ def test_models_and_catalogue_are_immutable_bounded_and_revalidated():
 
 def test_import_has_no_configuration_or_external_side_effects(monkeypatch):
     before = GEMINI_CAPABILITIES.model_dump_json()
-    monkeypatch.setenv("OLLAMA_HOST", "https://fictional-remote.invalid")
-    monkeypatch.setenv("OLLAMA_MODEL", "unreviewed-model")
-    monkeypatch.setenv("OLLAMA_ENABLED", "true")
-    imported = importlib.reload(ollama_capabilities)
-    assert imported.OLLAMA_CAPABILITIES.declarations == ()
+    registry_class = ollama_capabilities.OllamaCapabilityRegistry
+    capability_class = ollama_capabilities.OllamaCapability
+    catalogue = ollama_capabilities.OLLAMA_CAPABILITIES
+    denied_popen = subprocess.Popen
+    # Reloads belong to a fresh interpreter, never pytest's shared module graph.
+    script = """
+import sys
+import socket
+import subprocess
+import os
+import importlib
+sys.path.insert(0, sys.argv[1])
+
+def denied(*args, **kwargs):
+    raise AssertionError("Network, inference and subprocess operations forbidden")
+
+socket.create_connection = denied
+socket.socket.connect = denied
+socket.getaddrinfo = denied
+subprocess.Popen = denied
+import httpx
+httpx.Client.send = denied
+httpx.AsyncClient.send = denied
+from app.integrations.ai_capabilities import GEMINI_CAPABILITIES
+from app.integrations import ollama_capabilities
+before = GEMINI_CAPABILITIES.model_dump_json()
+os.environ.update({
+    "OLLAMA_HOST": "https://fictional-remote.invalid",
+    "OLLAMA_MODEL": "unreviewed-model",
+    "OLLAMA_ENABLED": "true",
+})
+imported = importlib.reload(ollama_capabilities)
+assert imported.OLLAMA_CAPABILITIES.declarations == ()
+assert GEMINI_CAPABILITIES.model_dump_json() == before
+print("PASS")
+"""
+    # No inherited credentials, proxy settings, database URLs or Python startup paths.
+    child_env = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ}
+    with monkeypatch.context() as launch:
+        launch.setattr(subprocess, "Popen", _PYTHON_POPEN)
+        result = subprocess.run(
+            [sys.executable, "-I", "-B", "-c", script, str(Path(__file__).resolve().parents[1])],
+            env=child_env,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            close_fds=True,
+            check=False,
+        )
+    assert result.returncode == 0, "Isolated import/reload security assertions failed"
+    assert result.stdout == "PASS\n" and result.stderr == ""
+    assert subprocess.Popen is denied_popen
+    assert ollama_capabilities.OllamaCapabilityRegistry is registry_class
+    assert ollama_capabilities.OllamaCapability is capability_class
+    assert ollama_capabilities.OLLAMA_CAPABILITIES is catalogue
     assert GEMINI_CAPABILITIES.model_dump_json() == before
 
 

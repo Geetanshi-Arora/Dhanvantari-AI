@@ -4,12 +4,15 @@ Fixture issuer constructs exact server-context bindings for tests only. It is NO
 an authentication, clinical approval, or production capability implementation.
 """
 
-import importlib
 import json
 import logging
+import os
 import socket
+import subprocess
+import sys
 from datetime import UTC, datetime
 from hashlib import sha256
+from pathlib import Path
 from uuid import UUID
 
 import httpx
@@ -465,27 +468,71 @@ def test_timeouts_and_no_environment_proxy_inheritance(records, monkeypatch):
     assert config["timeout"].as_dict() == dict(connect=5, read=20, write=10, pool=5)
 
 
-def test_production_is_always_blocked_and_import_does_not_send(records, monkeypatch):
-    calls = []
+def test_production_is_always_blocked_and_import_does_not_send():
+    adapter_class = gemini.GeminiAdapter
+    error_class = gemini.GeminiError
+    catalogue_before = GEMINI_CAPABILITIES.model_dump_json()
+    script = """
+import sys
+import socket
+import subprocess
+import importlib
+sys.path.insert(0, sys.argv[1])
 
-    def forbidden(*args, **kwargs):
-        calls.append(1)
-        raise AssertionError("Client must not be constructed")
+def blocked(*args, **kwargs):
+    raise AssertionError("Live network forbidden")
 
-    monkeypatch.setattr(httpx, "Client", forbidden)
-    importlib.reload(gemini)
-    for kwargs in [
-        {},
-        dict(enabled=True),
-        dict(transport=httpx.MockTransport(lambda r: response())),
-    ]:
-        with pytest.raises(gemini.GeminiError, match="capability_disabled"):
-            gemini.GeminiAdapter(**kwargs)
-    instance = object.__new__(gemini.GeminiAdapter)
-    for method in [instance.follow_up, instance.assess]:
-        with pytest.raises(gemini.GeminiError, match="capability_disabled"):
-            method()
-    assert calls == []
+socket.create_connection = blocked
+socket.getaddrinfo = blocked
+socket.socket.connect = blocked
+subprocess.Popen = blocked
+import httpx
+import pytest
+httpx.HTTPTransport.handle_request = blocked
+httpx.AsyncHTTPTransport.handle_async_request = blocked
+httpx.AsyncClient.send = blocked
+calls = []
+
+def forbidden(*args, **kwargs):
+    calls.append(1)
+    raise AssertionError("Client must not be constructed")
+
+httpx.Client = forbidden
+# Blockers are installed before the first import as well as the reload.
+from app.integrations import gemini
+from app.integrations.ai_capabilities import GEMINI_CAPABILITIES
+importlib.reload(gemini)
+for kwargs in [
+    {},
+    dict(enabled=True),
+    dict(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={}))),
+]:
+    with pytest.raises(gemini.GeminiError, match="capability_disabled"):
+        gemini.GeminiAdapter(**kwargs)
+instance = object.__new__(gemini.GeminiAdapter)
+for method in [instance.follow_up, instance.assess]:
+    with pytest.raises(gemini.GeminiError, match="capability_disabled"):
+        method()
+assert calls == []
+assert GEMINI_CAPABILITIES.declarations == ()
+print("PASS")
+"""
+    child_env = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ}
+    result = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", script, str(Path(__file__).resolve().parents[1])],
+        env=child_env,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        close_fds=True,
+        check=False,
+    )
+    assert result.returncode == 0, "Isolated import/reload production-blocker assertions failed"
+    assert result.stdout == "PASS\n" and result.stderr == ""
+    assert gemini.GeminiAdapter is adapter_class
+    assert gemini.GeminiError is error_class
+    assert GEMINI_CAPABILITIES.model_dump_json() == catalogue_before
     assert GEMINI_CAPABILITIES.declarations == ()
 
 
