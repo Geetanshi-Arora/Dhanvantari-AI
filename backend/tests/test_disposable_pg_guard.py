@@ -341,7 +341,7 @@ def test_fixture_gates_execution_and_always_registers_cleanup():
     assert "atexit.register(self.close)" in source
 
 
-@pytest.mark.parametrize("revision", ["0003", "0004", "0005"])
+@pytest.mark.parametrize("revision", ["0003", "0004", "0005", "0006"])
 def test_explicit_migration_allowlist_with_mocked_alembic_only(monkeypatch, revision):
     monkeypatch.setattr(guard.os, "environ", {})
     server = object.__new__(guard.DisposablePostgres)
@@ -357,7 +357,7 @@ def test_explicit_migration_allowlist_with_mocked_alembic_only(monkeypatch, revi
 
 
 @pytest.mark.parametrize(
-    "revision", ["0001", "0002", "0006", "head", "base", "+1", "0005 ", "../0005", "remote"]
+    "revision", ["0001", "0002", "0007", "head", "base", "+1", "0005 ", "../0005", "remote"]
 )
 def test_unapproved_migration_target_rejected_before_any_operation(monkeypatch, revision):
     server = object.__new__(guard.DisposablePostgres)
@@ -380,7 +380,7 @@ def test_existing_guard_logic_changes_only_allowlist_and_startup_diagnostic_hook
         cwd=ROOT,
     ).replace(b"\r\n", b"\n")
     old = b'if revision not in {"0003", "0004"}:'
-    new = b'if revision not in {"0003", "0004", "0005"}:'
+    new = b'if revision not in {"0003", "0004", "0005", "0006"}:'
     assert committed.count(old) == 1
     expected = (
         committed.replace(old, new)

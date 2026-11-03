@@ -10,6 +10,9 @@ const nurse = { id: "10000000-0000-0000-0000-000000000001", display_name: "Nurse
 const doctor = { id: "10000000-0000-0000-0000-000000000002", display_name: "Doctor Fictional", role: "doctor" };
 const password = "fictional-test-password";
 const csrf = "fictional-csrf-value";
+const patientId = "20000000-0000-4000-8000-000000000001";
+const caseId = "30000000-0000-4000-8000-000000000001";
+const now = "2026-01-01T00:00:00Z";
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
 
@@ -43,14 +46,19 @@ function check(value, message) { assert.ok(value, message); checks++; }
       errors.push("Unexpected external request");
       return route.abort();
     }
-    if (url.pathname === "/api/v1/patients") {
+    if (url.pathname === "/api/v1/patients/cases") {
       if (!server.loggedIn) return route.fulfill({ status: 401, contentType: "application/json", body: "{}" });
       if (server.staff.role !== "nurse") return route.fulfill({ status: 403, contentType: "application/json", body: "{}" });
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
-        items: [{ id: "20000000-0000-4000-8000-000000000001", reference: "FICTIONAL-001",
-          name: "Adult Fictional", age: 36, age_recorded_on: "2026-01-01", preferred_language: "hi" }],
+        items: [{ id: caseId, patient_id: patientId, patient_reference: "DV-200000000000000000000000000",
+          patient_name: "Adult Fictional", preferred_language: "hi", nurse_id: nurse.id, doctor_id: null,
+          status: "REGISTERED", created_at: now, updated_at: now }],
         next_cursor: null,
       }) });
+    }
+    if (url.pathname === "/api/v1/patients/consent-notices") {
+      const language = url.searchParams.get("language");
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: ["care", "uploads", "future_ai"].map((purpose) => ({ purpose, notice_version: "DRAFT-SYNTHETIC-1", language, publication_state: "draft", content_state: "not_provided", content: null, synthetic_only: true })) }) });
     }
     if (url.pathname.startsWith("/api/")) {
       const endpoint = url.pathname.slice("/api/v1/auth/".length);
@@ -86,6 +94,14 @@ function check(value, message) { assert.ok(value, message); checks++; }
         if (server.logoutStatus !== 204) return respond(server.logoutStatus, { detail: "FICTIONAL_PRIVATE_PROVIDER_DETAIL" });
         server.loggedIn = false;
         return respond(204, null, { "Set-Cookie": "dhanvantari_session=; Max-Age=0; HttpOnly; Path=/api; SameSite=Strict" });
+      }
+      if (url.pathname === "/api/v1/patients" && request.method() === "POST") {
+        check(request.headers()["x-csrf-token"] === csrf, "Registration uses CSRF protection");
+        return respond(201, { id: patientId, case_id: caseId, reference: "DV-200000000000000000000000000",
+          preferred_language: "hi", created_at: now, care_access: "enabled", consents: [
+            { id: "40000000-0000-4000-8000-000000000001", purpose: "care", status: "granted", granted: true,
+              notice_version: "DRAFT-SYNTHETIC-1", language: "hi", created_at: now, revoked_at: null },
+          ] });
       }
       errors.push("Unexpected API endpoint");
       return respond(404, {});
@@ -150,7 +166,7 @@ function check(value, message) { assert.ok(value, message); checks++; }
     await page.locator("#main").waitFor();
     await page.locator("#patient-rows tr").first().waitFor();
     check(await page.locator("#patient-rows tr").count() === 1, "Nurse reaches authorized API directory");
-    check(await page.locator(".notice.compact").textContent().then((s) => s.includes("Fictional")), "Development records remain clearly labeled");
+    check(await page.locator("#synthetic-workspace-notice").textContent().then((s) => s.includes("Synthetic")), "Development records remain clearly labeled");
     await page.evaluate(async () => {
       const store = await import("/assets/js/store.js");
       store.saveState({ password: "fictional", access_token: "fictional", role: "doctor" });
@@ -170,14 +186,18 @@ function check(value, message) { assert.ok(value, message); checks++; }
     await page.waitForURL("**/register.html");
     await page.locator("#main").waitFor();
     check(await page.locator("#patient-language").inputValue() === "hi", "Language preference retained");
-    check(await page.getByRole("button", { name: "Registration unavailable" }).isDisabled(), "Registration stays disabled without approved notices");
-    check(await page.locator("#registration-error").isVisible(), "Notice-unavailable explanation is visible");
-    await page.locator("#registration-form").evaluate((form) => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-    check(page.url().endsWith("register.html"), "Programmatic submit does not save or navigate");
+    check((await page.locator("#consent-draft-notice").textContent()).toLowerCase().includes("synthetic testing only"), "Draft notice is labelled synthetic-only");
+    await page.locator("#patient-name").fill("Adult Fictional");
+    await page.locator("#patient-age").fill("36");
+    await page.locator("#consent-care").selectOption("granted");
+    await page.getByRole("button", { name: "Register synthetic patient" }).click();
+    await page.locator("#registration-success").waitFor();
+    check((await page.locator("#registration-success").textContent()).includes(caseId), "Successful registration displays the generated case ID");
     await go("dashboard.html");
     await page.locator("#patient-rows tr").first().waitFor();
     check(await page.locator("#patient-count").textContent() === "1", "Only authorized API records are counted");
     await page.locator("#patient-search").fill("missing");
+    await page.locator("#empty-search").waitFor();
     check(await page.locator("#empty-search").isVisible(), "Loaded-record search has an empty state");
     await page.reload(); await page.locator("#patient-rows tr").first().waitFor();
     check(await page.locator("#patient-count").textContent() === "1", "Reload fetches API records without demo fallback");

@@ -25,6 +25,21 @@ from pydantic import (
 
 Language = Literal["en", "hi", "bn", "ta", "te", "mr", "gu", "pa"]
 ConsentPurpose = Literal["care", "uploads", "future_ai"]
+CaseStatus = Literal[
+    "REGISTERED",
+    "INTAKE_IN_PROGRESS",
+    "TRANSCRIPT_PENDING_CONFIRMATION",
+    "SYMPTOM_REVIEW",
+    "NURSE_CHECKS_PENDING",
+    "READY_FOR_DOCTOR",
+    "DOCTOR_REVIEW",
+    "ADDITIONAL_INFORMATION_REQUIRED",
+    "PENDING_DOCTOR_APPROVAL",
+    "APPROVED",
+    "REFERRED",
+    "FOLLOW_UP",
+    "CLOSED",
+]
 Name = Annotated[
     str, StringConstraints(strict=True, strip_whitespace=True, min_length=1, max_length=80)
 ]
@@ -60,6 +75,20 @@ class ConsentDecision(Contract):
         return self
 
 
+class ConsentNoticeOption(Contract):
+    purpose: ConsentPurpose
+    notice_version: NoticeVersion
+    language: Language
+    publication_state: Literal["draft", "configured"]
+    content_state: Literal["not_provided"] = "not_provided"
+    content: None = None
+    synthetic_only: StrictBool
+
+
+class ConsentNoticeCatalogueResponse(Contract):
+    items: Annotated[list[ConsentNoticeOption], Field(max_length=100)]
+
+
 class PatientRegistrationRequest(Contract):
     name: Name
     age: Age
@@ -90,6 +119,41 @@ class PatientRegistrationRequest(Contract):
         ):
             raise ValueError("Clinical information requires care consent")
         return self
+
+
+class PatientBasicUpdateRequest(Contract):
+    name: Name | None = None
+    age: Age | None = None
+    preferred_language: Language | None = None
+    sex: Literal["Female", "Male", "Intersex", "Prefer not to say"] | None = None
+    contact_reference: Annotated[str, StringConstraints(strict=True, max_length=60)] | None = None
+
+    @field_validator("contact_reference", mode="before")
+    @classmethod
+    def optional_contact(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def require_change(self) -> Self:
+        if (
+            not self.model_fields_set
+            or (self.name is None and "name" in self.model_fields_set)
+            or (self.age is None and "age" in self.model_fields_set)
+            or (self.preferred_language is None and "preferred_language" in self.model_fields_set)
+        ):
+            raise ValueError("At least one valid basic patient field is required")
+        return self
+
+
+class PatientCaseCreateRequest(Contract):
+    language: Language | None = None
+
+
+class PatientCaseCreateResponse(Contract):
+    case_id: UUID
+    patient_id: UUID
+    status: CaseStatus
+    created_at: AwareDatetime
 
 
 class ConsentUpdateRequest(ConsentDecision):
@@ -133,6 +197,7 @@ class PatientDirectoryItem(Contract):
     age: Age
     age_recorded_on: date
     preferred_language: Language
+    created_at: AwareDatetime
 
 
 class PatientDirectoryResponse(Contract):
@@ -151,10 +216,23 @@ class PatientDetailResponse(PatientDirectoryItem):
     created_at: AwareDatetime
 
 
+class PatientBasicResponse(Contract):
+    id: UUID
+    reference: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=30)]
+    name: Name
+    age: Age
+    age_recorded_on: date
+    preferred_language: Language
+    sex: Literal["Female", "Male", "Intersex", "Prefer not to say"] | None
+    contact_reference: Annotated[str, StringConstraints(strict=True, max_length=60)] | None
+    created_at: AwareDatetime
+
+
 class RegistrationStatusResponse(Contract):
     id: UUID
     reference: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=30)]
     preferred_language: Language
+    case_id: UUID
     created_at: AwareDatetime
     care_access: Literal["enabled", "blocked"]
     consents: Annotated[list[ConsentResponse], Field(min_length=1, max_length=3)]
@@ -185,3 +263,38 @@ class ConsentMutationResponse(Contract):
             if self.care_access != expected:
                 raise ValueError("Inconsistent care access")
         return self
+
+
+class PatientCaseResponse(Contract):
+    id: UUID
+    patient_id: UUID
+    patient_reference: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=30)]
+    patient_name: Name
+    preferred_language: Language
+    nurse_id: UUID
+    doctor_id: UUID | None
+    status: CaseStatus
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+
+
+class PatientCaseDirectoryResponse(Contract):
+    items: Annotated[list[PatientCaseResponse], Field(max_length=100)]
+    next_cursor: Annotated[str, StringConstraints(strict=True, min_length=1, max_length=512)] | None
+
+
+class CaseHistoryItem(Contract):
+    id: UUID
+    case_id: UUID
+    previous_status: CaseStatus | None
+    status: CaseStatus
+    changed_by: UUID
+    changed_at: AwareDatetime
+
+
+class CaseHistoryResponse(Contract):
+    items: Annotated[list[CaseHistoryItem], Field(max_length=100)]
+
+
+class CaseStatusUpdateRequest(Contract):
+    status: CaseStatus

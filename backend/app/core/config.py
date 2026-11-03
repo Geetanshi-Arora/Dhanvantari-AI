@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = 1800
     login_limit: int = 10
     login_window_seconds: int = 900
+    consent_notice_identities: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def validate_security(self):
@@ -67,6 +68,17 @@ class Settings(BaseSettings):
             raise ValueError("Session lifetime must be between 60 and 3600 seconds")
         if not 1 <= self.login_limit <= 100 or not 60 <= self.login_window_seconds <= 3600:
             raise ValueError("Invalid login throttle settings")
+        if len(set(self.consent_notice_identities)) != len(self.consent_notice_identities):
+            raise ValueError("Consent notice identities must be unique")
+        for identity in self.consent_notice_identities:
+            parts = identity.split(":") if isinstance(identity, str) else []
+            if (
+                len(parts) != 3
+                or parts[0] not in {"care", "uploads", "future_ai"}
+                or not 1 <= len(parts[1]) <= 40
+                or parts[2] not in {"en", "hi", "bn", "ta", "te", "mr", "gu", "pa"}
+            ):
+                raise ValueError("Invalid consent notice identity")
         return self
 
 
@@ -84,6 +96,7 @@ RUNTIME_KEYS = {
     "RUNTIME_CREDENTIAL_FILE",
     "RUNTIME_POOLER_HOST",
     "RUNTIME_CA_FILE",
+    "CONSENT_NOTICE_IDENTITIES",
 }
 
 

@@ -254,6 +254,7 @@ def test_inconsistent_response_rejected(changes):
 def test_registration_status_minimal_and_consistent(model):
     payload = dict(
         id=UID,
+        case_id=UUID("90000000-0000-4000-8000-000000000001"),
         reference="FICTIONAL-001",
         preferred_language="hi",
         created_at=NOW,
@@ -279,6 +280,7 @@ def test_directory_date_limits_and_unknown_fields():
         age=18,
         age_recorded_on="2026-01-01",
         preferred_language="en",
+        created_at=NOW,
     )
     assert PatientDirectoryResponse(items=[item], next_cursor=None).items[0].age == 18
     with pytest.raises(ValidationError):
@@ -374,6 +376,7 @@ def test_directory_text_rejects_nul(field):
 def test_registration_response_reference_rejects_nul(model):
     payload = dict(
         id=UID,
+        case_id=UUID("90000000-0000-4000-8000-000000000001"),
         reference="Fictional\x00",
         preferred_language="en",
         created_at=NOW,

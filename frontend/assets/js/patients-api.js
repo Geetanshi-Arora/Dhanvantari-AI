@@ -1,5 +1,6 @@
 /** Read-only, same-origin patient directory. No patient data or tokens are persisted. */
 import { languages } from "./store.js";
+import { csrfToken } from "./auth.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 class DirectoryError extends Error {
@@ -39,6 +40,75 @@ export async function patientDirectory(cursor = null, { signal } = {}) {
   const query = new URLSearchParams({ limit: "20" });
   if (cursor !== null) query.set("cursor", cursor);
   return page(await read(`/api/v1/patients?${query}`, { signal }), cursor);
+}
+
+export async function caseDirectory(cursor = null, search = "", { signal } = {}) {
+  if (cursor !== null && (typeof cursor !== "string" || !UUID.test(cursor))) throw new DirectoryError();
+  const query = new URLSearchParams({ limit: "20" });
+  if (cursor !== null) query.set("cursor", cursor);
+  if (search.trim()) query.set("search", search.trim());
+  const value = await read(`/api/v1/patients/cases?${query}`, { signal });
+  if (!value || !Array.isArray(value.items) || value.items.length > 20 ||
+      !(value.next_cursor === null || (typeof value.next_cursor === "string" && UUID.test(value.next_cursor)))) throw new DirectoryError();
+  const items = value.items.map((item) => {
+    if (!item || !UUID.test(item.id) || !UUID.test(item.patient_id) || !UUID.test(item.nurse_id) ||
+        !(item.doctor_id === null || UUID.test(item.doctor_id)) || !text(item.patient_reference, 30) ||
+        !text(item.patient_name, 80) || !Object.hasOwn(languages, item.preferred_language) ||
+        !["REGISTERED", "INTAKE_IN_PROGRESS", "TRANSCRIPT_PENDING_CONFIRMATION", "SYMPTOM_REVIEW",
+          "NURSE_CHECKS_PENDING", "READY_FOR_DOCTOR", "DOCTOR_REVIEW", "ADDITIONAL_INFORMATION_REQUIRED",
+          "PENDING_DOCTOR_APPROVAL", "APPROVED", "REFERRED", "FOLLOW_UP", "CLOSED"].includes(item.status) ||
+        !timestamp(item.created_at) || !timestamp(item.updated_at)) throw new DirectoryError();
+    return { ...item, id: item.id.toLowerCase(), patient_id: item.patient_id.toLowerCase() };
+  });
+  return { items, next_cursor: value.next_cursor?.toLowerCase() ?? null };
+}
+
+export async function patientCase(id, options) {
+  id = patientId(id);
+  const value = await read(`/api/v1/patients/cases/${id}`, options);
+  if (!value || patientId(value.id) !== id || !UUID.test(value.patient_id) || !UUID.test(value.nurse_id) ||
+      !(value.doctor_id === null || UUID.test(value.doctor_id)) || !text(value.patient_reference, 30) ||
+      !text(value.patient_name, 80) || !Object.hasOwn(languages, value.preferred_language) ||
+      !["REGISTERED", "INTAKE_IN_PROGRESS", "TRANSCRIPT_PENDING_CONFIRMATION", "SYMPTOM_REVIEW",
+        "NURSE_CHECKS_PENDING", "READY_FOR_DOCTOR", "DOCTOR_REVIEW", "ADDITIONAL_INFORMATION_REQUIRED",
+        "PENDING_DOCTOR_APPROVAL", "APPROVED", "REFERRED", "FOLLOW_UP", "CLOSED"].includes(value.status) ||
+      !timestamp(value.created_at) || !timestamp(value.updated_at)) throw new DirectoryError();
+  return { ...value, id, patient_id: value.patient_id.toLowerCase() };
+}
+
+export async function caseHistory(id, options) {
+  id = patientId(id);
+  const value = await read(`/api/v1/patients/cases/${id}/history`, options);
+  if (!value || !Array.isArray(value.items) || value.items.length > 100) throw new DirectoryError();
+  return value.items.map((item) => {
+    if (!item || !UUID.test(item.id) || patientId(item.case_id) !== id || !UUID.test(item.changed_by) ||
+        !(item.previous_status === null || typeof item.previous_status === "string") ||
+        typeof item.status !== "string" || !timestamp(item.changed_at)) throw new DirectoryError();
+    return item;
+  });
+}
+
+export async function consentNotices(language, options) {
+  if (typeof language !== "string" || !Object.hasOwn(languages, language)) throw new DirectoryError();
+  const value = await read(`/api/v1/patients/consent-notices?language=${encodeURIComponent(language)}`, options);
+  if (!value || !Array.isArray(value.items)) throw new DirectoryError();
+  return value.items;
+}
+
+export async function registerPatient(payload, idempotencyKey) {
+  const token = await csrfToken();
+  const response = await fetch("/api/v1/patients", {
+    method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+    headers: { "Content-Type": "application/json", Accept: "application/json",
+      "X-CSRF-Token": token, "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new DirectoryError(response.status);
+  const value = await response.json();
+  const id = patientId(value?.id);
+  if (!value.case_id || !UUID.test(value.case_id) || !text(value.reference, 30) ||
+      !timestamp(value.created_at) || !Array.isArray(value.consents)) throw new DirectoryError();
+  return { ...value, id, case_id: value.case_id.toLowerCase() };
 }
 
 async function read(path, { signal } = {}) {
@@ -93,7 +163,7 @@ function detail(value, id) {
   return result;
 }
 function registration(value, id) {
-  if (!value || patientId(value.id) !== id || !text(value.reference, 30) ||
+  if (!value || patientId(value.id) !== id || !UUID.test(value.case_id) || !text(value.reference, 30) ||
       typeof value.preferred_language !== "string" || !Object.hasOwn(languages, value.preferred_language) ||
       !timestamp(value.created_at) || !["enabled", "blocked"].includes(value.care_access) ||
       !Array.isArray(value.consents) || value.consents.length < 1 || value.consents.length > 3) throw new DirectoryError();
@@ -114,7 +184,7 @@ function registration(value, id) {
   });
   const care = consents.find((consent) => consent.purpose === "care");
   if (!care || value.care_access !== (care.status === "granted" ? "enabled" : "blocked")) throw new DirectoryError();
-  return { id, reference: value.reference, preferred_language: value.preferred_language,
+  return { id, case_id: value.case_id.toLowerCase(), reference: value.reference, preferred_language: value.preferred_language,
     created_at: value.created_at, care_access: value.care_access, consents };
 }
 

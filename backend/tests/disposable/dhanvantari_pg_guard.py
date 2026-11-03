@@ -477,7 +477,7 @@ class DisposablePostgres:
         return engine
 
     def migrate(self, revision):
-        if revision not in {"0003", "0004", "0005"}:
+        if revision not in {"0003", "0004", "0005", "0006"}:
             raise HarnessError("Unreviewed migration target")
         reject_external_environment(os.environ)
         url = self.url().render_as_string(hide_password=False)

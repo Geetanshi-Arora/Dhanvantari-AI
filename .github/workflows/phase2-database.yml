@@ -1,0 +1,107 @@
+name: Phase 2 database migration verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase2-database-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-postgres:
+    name: Disposable PostgreSQL migrations through Alembic head
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # The fixture sets MIGRATION_DATABASE_URL to its own pgserver URL only
+      # after creating a fresh disposable PostgreSQL cluster.
+      DATABASE_URL: ""
+      MIGRATION_DATABASE_URL: ""
+      SQLALCHEMY_DATABASE_URI: ""
+      PGHOST: ""
+      PGHOSTADDR: ""
+      PGPORT: ""
+      PGDATABASE: ""
+      PGUSER: ""
+      PGSERVICE: ""
+      PGSERVICEFILE: ""
+      PGPASSWORD: ""
+      PGPASSFILE: ""
+      PGSSLMODE: ""
+      PGOPTIONS: ""
+
+    steps:
+      - name: Check out source without persisting the token
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Refuse local credential configuration
+        run: |
+          for file in .env runtime.env; do
+            if [[ -e "$file" ]]; then
+              echo "Refusing database verification with local credential file: $file" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install locked test dependencies
+        run: python -m pip install --disable-pip-version-check --no-input -r requirements-test.lock
+
+      - name: Confirm Alembic head
+        run: python -m alembic -c ../database/alembic.ini heads
+
+      - name: Verify the isolated harness PostgreSQL tools
+        run: |
+          python - <<'PY'
+          from pgserver._commands import POSTGRES_BIN_PATH
+
+          required = ("initdb", "pg_ctl", "postgres")
+          missing = [name for name in required if not (POSTGRES_BIN_PATH / name).is_file()]
+          if missing:
+              raise SystemExit(f"pgserver bundled tools missing: {', '.join(missing)}")
+          print(f"Using pgserver-bundled PostgreSQL tools from {POSTGRES_BIN_PATH}")
+          PY
+
+      - name: Run schema, RLS, ownership and migration reapplication tests
+        run: python -m pytest -q --basetemp "$RUNNER_TEMP/dhanvantari-phase2-postgres" tests/test_database.py
+
+      - name: Remove disposable PostgreSQL cluster files
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import shutil
+          from pathlib import Path
+
+          runner_temp = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+          test_root = runner_temp / "dhanvantari-phase2-postgres"
+          if test_root.parent != runner_temp or test_root.name != "dhanvantari-phase2-postgres":
+              raise SystemExit("Refusing to clean an unexpected test directory")
+
+          for pid_file in test_root.rglob("postmaster.pid"):
+              data = pid_file.parent
+              try:
+                  from pgserver._commands import pg_ctl
+
+                  pg_ctl(["-w", "stop"], pgdata=data, timeout=15)
+              except Exception as error:
+                  print(f"PostgreSQL stop reported {type(error).__name__}; runner is ephemeral")
+
+          if test_root.exists():
+              shutil.rmtree(test_root)
+          PY

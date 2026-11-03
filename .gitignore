@@ -13,6 +13,7 @@ playwright-report/
 # Local tooling and scratch files
 work/
 .pytest_cache/
+backend/.pytest-phase2-verification/
 .ruff_cache/
 .coverage
 htmlcov/

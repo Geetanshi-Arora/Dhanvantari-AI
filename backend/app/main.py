@@ -59,7 +59,18 @@ def _create_app(settings: Settings | None = None, *, engine=None, auth=None):
     app.add_middleware(VoiceBodyLimit)
     app.state.settings = settings
     app.state.engine = db_engine
-    app.state.patient_service = PatientService(db_engine)
+    notice_identities = {
+        tuple(identity.split(":")) for identity in settings.consent_notice_identities
+    }
+    if settings.environment == "development":
+        notice_identities.update(
+            (purpose, "DRAFT-SYNTHETIC-1", language)
+            for purpose in ("care", "uploads", "future_ai")
+            for language in ("en", "hi", "bn", "ta", "te", "mr", "gu", "pa")
+        )
+    app.state.patient_service = PatientService(
+        db_engine, approved_consent_notices=frozenset(notice_identities)
+    )
     # No provider, voice consent adapter or workflow storage is wired at startup.
     app.state.voice_bindings = VoiceRouteBindings()
     app.state.cipher = Fernet(settings.session_encryption_key.get_secret_value().encode())

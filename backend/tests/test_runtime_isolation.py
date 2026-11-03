@@ -216,7 +216,7 @@ def test_fresh_upgrade_and_recreated_ledger_are_protected(migration_db):
     with engine.connect() as c:
         assert acl(c) == original_acl
         assert (
-            c.execute(text("SELECT count(*) FROM pg_tables WHERE schemaname='app'")).scalar() == 22
+            c.execute(text("SELECT count(*) FROM pg_tables WHERE schemaname='app'")).scalar() == 27
         )
 
 

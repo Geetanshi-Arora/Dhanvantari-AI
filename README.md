@@ -2,11 +2,14 @@
 
 A multilingual, nurse-assisted healthcare support platform for rural India.
 
-The existing sky-blue, lavender, purple and pink frontend now uses FastAPI's
-Supabase-backed staff authentication. Nurses and doctors sign in with email and
-password; the verified active staff profile determines their role. Patient records,
-language selection and registration remain **synthetic demonstrations only**.
-No AI, voice, WhatsApp, real patient APIs or autonomous prescribing are connected.
+The existing frontend uses FastAPI's Supabase-backed staff authentication. Nurses
+and doctors sign in with email and password; the verified active staff profile
+determines their role. Nurse registration and case listing/detail use FastAPI and
+PostgreSQL. The active registration flow is restricted to fictional synthetic adults
+and records clearly marked draft consent metadata with no notice text. It is not
+valid for real-patient use. Gnani and Gemini adapters remain tested but disconnected
+from the workflow. No live speech, clinical AI, doctor review, WhatsApp or
+autonomous prescribing is connected.
 
 ## Run locally
 
@@ -33,11 +36,14 @@ active application staff profiles; creating those records requires separate appr
 ## Explore the authenticated prototype
 
 1. Choose Nurse or Doctor, enter your fictional development account and sign in.
-2. Nurses reach the demo dashboard; doctors reach a separate placeholder.
-3. Nurses can choose a language and practice registration with fictional data.
-4. All displayed patient records remain marked as synthetic. New entries live only
-   in this tab's sessionStorage; no patient record is sent to an API.
-5. Sign out revokes the backend session using CSRF protection, clears demo state,
+2. Nurses reach the case dashboard; doctors reach a separate placeholder.
+3. Nurses can register fictional test patients through the backend. Registration,
+   case creation and draft consent metadata are stored atomically in PostgreSQL.
+4. The dashboard reads assigned cases from the database. Search is sent to the API;
+   browser storage is not used for patient records.
+5. Draft notices have no text and cannot be used with real patients. Officially
+   approved, published notices are required before real-patient workflows can exist.
+6. Sign out revokes the backend session using CSRF protection, clears demo state,
    and returns to the login page. Failed revocation is reported explicitly.
 
 Passwords, Supabase tokens and session tokens are never stored by frontend
@@ -50,13 +56,13 @@ verified identity, permissions and consent requirements.
 
 - `frontend/login.html`: real staff sign-in.
 - `frontend/doctor.html`: authenticated doctor placeholder, with no clinical actions.
-- `frontend/dashboard.html`, `language.html`, `register.html`: guarded nurse demos.
+- `frontend/dashboard.html`, `language.html`, `register.html`: guarded nurse case workflow and language selection.
 - `frontend/assets/js/auth.js`: same-origin cookie authentication client.
-- `frontend/assets/js/app.js`: navigation, guards and demo interactions.
-- `frontend/assets/js/store.js`: synthetic tab state only.
+- `frontend/assets/js/app.js`: navigation, guards, case dashboard and registration interactions.
+- `frontend/assets/js/store.js`: non-clinical tab state only; patient records come from the backend.
 - `frontend/assets/css/styles.css`: existing shared theme, unchanged.
 - `backend/`: FastAPI configuration, services and automated tests.
-- `database/migrations/`: existing Alembic migrations, unchanged by this integration.
+- `database/migrations/`: staged Alembic migrations, including the case lifecycle foundation.
 
 ## Validate
 
@@ -75,5 +81,6 @@ browser storage, back-forward cache restoration and mobile layout. Mocked browse
 tests do not establish live Supabase compatibility; the backend tests independently
 verify the real session and authorization code using disposable PostgreSQL.
 
-See [architecture](docs/architecture.md) for the broader roadmap. Clinical patient
-workflows, doctor review actions and AI integrations remain future work.
+See [architecture](docs/architecture.md) for the implementation status and target
+case workflow. Voice intake, AI structuring, observations, safety screening, doctor
+review/approval, instruction delivery and follow-up remain future work.

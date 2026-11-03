@@ -1,7 +1,8 @@
 import { signIn, currentStaff, signOut, authMessage } from "./auth.js";
 import { initializeVoiceDemo } from "./voice-demo.js";
 import { createVoiceClient } from "./voice-api.js";
-import { patientDirectory, directoryMessage, patientDetail, patientRegistration, patientReadMessage } from "./patients-api.js";
+import { caseDirectory, patientCase, caseHistory, consentNotices, registerPatient,
+  directoryMessage, patientDetail, patientRegistration, patientReadMessage } from "./patients-api.js";
 import {
   languages,
   readState,
@@ -163,19 +164,6 @@ if (login) {
   });
 }
 
-const registrationForm = $("#registration-form");
-if (registrationForm) {
-  registrationForm.addEventListener("submit", (event) => event.preventDefault());
-  registrationForm.setAttribute("aria-disabled", "true");
-  registrationForm.querySelectorAll("input, select, textarea, button").forEach((control) => {
-    control.disabled = true;
-  });
-  registrationForm.querySelector('[type="submit"]').textContent = "Registration unavailable";
-  $("#registration-error").textContent =
-    "Patient registration is unavailable until approved consent notices are published.";
-  $("#registration-error").hidden = false;
-}
-
 const staff = await requireWorkspace();
 if (!workspace || staff) initializeWorkspace(staff);
 
@@ -228,7 +216,7 @@ function initializeWorkspace(staff) {
     if (Object.hasOwn(languages, readState().language)) {
       $("#patient-language").value = readState().language;
     }
-    initializeRegistrationPreview(registration);
+    initializeRegistration(registration);
   }
 
   if (workspace) {
@@ -239,13 +227,20 @@ function initializeWorkspace(staff) {
 }
 
 
-function initializeRegistrationPreview(form) {
-  // Preview only: no payload construction, notice approval, persistence or API writes.
+function initializeRegistration(form) {
   form.removeAttribute("aria-disabled");
   form.querySelectorAll("input, select, textarea").forEach((control) => {
     control.disabled = false;
   });
   const care = $("#consent-care");
+  const language = $("#patient-language");
+  const submit = form.querySelector('[type="submit"]');
+  const error = $("#registration-error");
+  const notice = $("#consent-draft-notice");
+  const success = $("#registration-success");
+  const noticeVersions = new Map();
+  let submissionKey = null;
+  let busy = false;
   const clinical = [$("#patient-history"), $("#patient-allergies"), $("#patient-medicines")];
   function updateClinical() {
     const blocked = care.value !== "granted";
@@ -287,6 +282,99 @@ function initializeRegistrationPreview(form) {
   });
   form.addEventListener("invalid", (event) => validate(event.target), true);
   updateClinical();
+
+  async function loadNotices() {
+    submit.disabled = true;
+    error.hidden = true;
+    notice.hidden = true;
+    try {
+      const items = await consentNotices(language.value);
+      noticeVersions.clear();
+      for (const item of items) {
+        if (item.publication_state !== "draft" || item.synthetic_only !== true ||
+            item.content_state !== "not_provided" || item.content !== null) continue;
+        noticeVersions.set(item.purpose, item.notice_version);
+      }
+      const version = noticeVersions.get("care");
+      if (!version) throw new Error("notice unavailable");
+      notice.textContent = `DRAFT CONSENT · ${version} · ${language.value.toUpperCase()}. Notice text has not been supplied. Synthetic testing only; this is not valid for real-patient use.`;
+      notice.hidden = false;
+      submit.disabled = busy;
+    } catch {
+      error.textContent = "Draft consent configuration is unavailable. Registration cannot continue.";
+      error.hidden = false;
+    }
+  }
+  language.addEventListener("change", loadNotices);
+  loadNotices();
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (busy || !form.reportValidity()) return;
+    for (const control of form.querySelectorAll("input, select, textarea")) validate(control);
+    if (!form.reportValidity()) return;
+    const consents = [];
+    for (const [purpose, id] of [["care", "consent-care"], ["uploads", "consent-uploads"], ["future_ai", "consent-future-ai"]]) {
+      const value = $(`#${id}`).value;
+      if (!value) continue;
+      const version = noticeVersions.get(purpose);
+      if (!version) {
+        error.textContent = `A draft ${purpose} notice is unavailable for this language.`;
+        error.hidden = false;
+        return;
+      }
+      consents.push({ purpose, granted: value === "granted", notice_version: version, language: language.value });
+    }
+    if (!consents.some((item) => item.purpose === "care")) return;
+    const data = new FormData(form);
+    const optional = (key) => String(data.get(key) || "").trim() || null;
+    const payload = {
+      name: String(data.get("name")).trim(), age: Number(data.get("age")),
+      preferred_language: language.value, sex: optional("sex"),
+      contact_reference: optional("contact_reference"), history: optional("history"),
+      allergies: optional("allergies"), current_medicines: optional("current_medicines"), consents,
+    };
+    busy = true;
+    submit.disabled = true;
+    submit.textContent = "Saving synthetic registration…";
+    error.hidden = true;
+    success.hidden = true;
+    submissionKey ||= crypto.randomUUID();
+    try {
+      const result = await registerPatient(payload, submissionKey);
+      submissionKey = null;
+      success.textContent = `Synthetic patient registered. Patient reference: ${result.reference}. Case ID: ${result.case_id}.`;
+      success.hidden = false;
+      form.reset();
+      updateClinical();
+      language.value = result.preferred_language;
+      await loadNotices();
+      window.setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
+    } catch (failure) {
+      if (failure.status === 401) {
+        hideWorkspace();
+        clearState();
+        window.location.replace("login.html?reason=expired");
+        return;
+      }
+      if ([422, 409, 403].includes(failure.status)) submissionKey = null;
+      error.textContent = registrationMessage(failure);
+      error.hidden = false;
+    } finally {
+      busy = false;
+      submit.disabled = noticeVersions.size === 0;
+      submit.textContent = "Register synthetic patient";
+    }
+  });
+}
+
+function registrationMessage(error) {
+  if (error.status === 401) return "Your session has expired. Sign in again.";
+  if (error.status === 403) return "Registration is unavailable for this account or request.";
+  if (error.status === 409) return "This submission conflicts with a previous consent decision. Review the record before retrying.";
+  if (error.status === 422) return "The registration could not be validated. Check the details and draft consent selection.";
+  if (error.status === 503) return "The patient database or consent configuration is unavailable. No record was confirmed.";
+  return "Registration did not complete. Check the connection and retry.";
 }
 
 function initializeDirectory() {
@@ -325,7 +413,7 @@ function initializeDirectory() {
     $("#patient-directory").setAttribute("aria-busy", "false");
   }
   const viewer = initializePatientViewer({
-    blocked: (id) => { records.delete(id); render(); },
+    blocked() {},
     denied: clear,
   });
   clearDirectory = clear;
@@ -333,11 +421,11 @@ function initializeDirectory() {
   function render() {
     const query = search.value.trim().toLowerCase();
     rows.replaceChildren();
-    for (const patient of records.values()) {
-      if (!`${patient.name} ${patient.reference}`.toLowerCase().includes(query)) continue;
+    for (const item of records.values()) {
+      if (!`${item.patient_name} ${item.patient_reference}`.toLowerCase().includes(query)) continue;
       const row = document.createElement("tr");
-      for (const [index, value] of [patient.name, patient.reference, patient.age,
-                           languages[patient.preferred_language], "Fictional record"].entries()) {
+      for (const [index, value] of [item.patient_name, item.id, languages[item.preferred_language],
+                           new Date(item.created_at).toLocaleDateString(), item.status].entries()) {
         const cell = document.createElement("td");
         if (index === 4) {
           const badge = document.createElement("span");
@@ -347,9 +435,9 @@ function initializeDirectory() {
           const button = document.createElement("button");
           button.type = "button";
           button.className = "text-button";
-          button.textContent = "View record";
-          button.setAttribute("aria-label", `View record ${patient.reference}`);
-          button.addEventListener("click", () => viewer.open(patient.id));
+          button.textContent = "Open case";
+          button.setAttribute("aria-label", `Open case ${item.id}`);
+          button.addEventListener("click", () => viewer.open(item.patient_id, item.id));
           cell.append(button);
         } else cell.textContent = String(value);
         row.append(cell);
@@ -363,8 +451,16 @@ function initializeDirectory() {
     search.disabled = records.size === 0;
   }
 
-  async function load() {
-    if (busy) return;
+  async function load(reset = false) {
+    if (busy && !reset) return;
+    if (reset) {
+      generation++;
+      pending?.abort();
+      busy = false;
+      records.clear();
+      cursors.clear();
+      next = null;
+    }
     busy = true;
     const version = generation;
     pending = new AbortController();
@@ -374,7 +470,7 @@ function initializeDirectory() {
     status.textContent = "Loading authorized patient records…";
     $("#patient-directory").setAttribute("aria-busy", "true");
     try {
-      const result = await patientDirectory(next, { signal: pending.signal });
+      const result = await caseDirectory(next, search.value, { signal: pending.signal });
       if (version !== generation) return;
       if (result.next_cursor && cursors.has(result.next_cursor)) {
         throw new Error("Directory pagination unavailable");
@@ -384,7 +480,7 @@ function initializeDirectory() {
       next = result.next_cursor;
       render();
       more.hidden = next === null;
-      status.textContent = `${records.size} authorized records loaded. Search covers loaded records only.`;
+      status.textContent = `${records.size} assigned patient cases loaded.`;
     } catch (failure) {
       if (version !== generation) return;
       clear();
@@ -405,9 +501,15 @@ function initializeDirectory() {
       }
     }
   }
-  search.addEventListener("input", render);
-  more.addEventListener("click", load);
-  retry.addEventListener("click", load);
+  let searchTimer;
+  search.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      load(true);
+    }, 250);
+  });
+  more.addEventListener("click", () => load(false));
+  retry.addEventListener("click", () => load(true));
   load();
 }
 
@@ -464,27 +566,44 @@ function initializePatientViewer({ blocked, denied }) {
         ["Decision recorded at", consent.created_at], ["Revoked at", consent.revoked_at]] : [["Decision status", "Not recorded"]]);
     }
   }
-  async function open(id) {
+  async function open(id, caseId) {
     clear();
     const version = generation;
     pending = new AbortController();
     panel.hidden = false;
     panel.setAttribute("aria-busy", "true");
-    message.textContent = "Loading patient record…";
+    message.textContent = "Loading assigned patient case…";
     try {
-      const state = await patientRegistration(id, { signal: pending.signal });
+      const [state, caseData, history] = await Promise.all([
+        patientRegistration(id, { signal: pending.signal }),
+        patientCase(caseId, { signal: pending.signal }),
+        caseHistory(caseId, { signal: pending.signal }),
+      ]);
       if (version !== generation) return;
+      if (caseData.patient_id !== id) throw new Error("Case patient mismatch");
       // Never request clinical detail when care access is blocked.
       const detail = state.care_access === "enabled" ? await patientDetail(id, { signal: pending.signal }) : null;
       if (version !== generation) return;
       renderStatus(state);
+      fields(status, "Case", [["Case ID", caseData.id], ["Current status", caseData.status],
+        ["Created", caseData.created_at], ["Last updated", caseData.updated_at]]);
+      const historyList = document.createElement("ul");
+      history.forEach((entry) => {
+        const line = document.createElement("li");
+        line.textContent = `${entry.status} · ${entry.changed_at}`;
+        historyList.append(line);
+      });
+      const historyHeading = document.createElement("h4");
+      historyHeading.textContent = "Case history";
+      status.append(historyHeading, historyList);
       voiceDemo.setPatientContext({ language: state.preferred_language, careAccess: state.care_access });
       if (detail) fields(clinical, "Patient details", [["Name", detail.name], ["Age", detail.age],
         ["Age recorded on", detail.age_recorded_on], ["Sex", detail.sex],
         ["Contact reference", detail.contact_reference], ["History", detail.history],
         ["Allergies", detail.allergies], ["Current medicines", detail.current_medicines]]);
       else blocked(id);
-      message.textContent = detail ? "Read-only patient record." : "Care access blocked. Clinical details are unavailable.";
+      message.textContent = detail ? "Assigned patient case and permitted details." :
+        "Assigned case and registration details. Care access is blocked; clinical details are unavailable.";
     } catch (failure) {
       if (version !== generation) return;
       clear();

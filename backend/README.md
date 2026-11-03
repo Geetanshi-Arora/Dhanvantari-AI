@@ -1,23 +1,25 @@
-# Phase 2, stage 1: backend foundation and authentication
+# Phase 2: backend foundation and case management
 
 FastAPI, SQLAlchemy, PostgreSQL migrations, Supabase Auth, server-side sessions,
 CSRF protection, role dependencies and append-only authentication audit events are implemented.
-The initial migration includes all planned clinical entities, RLS read policies and
-urgent-escalation storage. Clinical write permissions, patient APIs, file storage
-endpoints and the doctor review UI are reserved for subsequent stages.
+Patient registration, consent, nurse-assigned cases, case listing/search/detail/history,
+basic patient updates and limited nurse-side case transitions use the existing secured
+PostgreSQL function boundary. Migration 0006 adds case status history and synthetic-only
+draft consent metadata. It has not been applied to a live project. File storage and the
+doctor review UI are reserved for later stages.
 
-The frontend now uses the existing cookie-based authentication APIs for nurse and
-doctor sign-in. Its patient forms still use fictional tab-scoped data; never enter
-actual patient information. Nurses receive the demo dashboard and doctors receive
-a separate placeholder. See [frontend login testing](../docs/frontend-authentication.md).
+The frontend uses the existing cookie-based authentication APIs. Nurse registration
+and the case dashboard now call the backend; use fictional adults only. The draft
+notice version has no consent wording and is never valid for real-patient use. There
+is no doctor approval UI. See [frontend login testing](../docs/frontend-authentication.md).
 No production deployment or remote migration is performed.
 
 ## Runtime credential integration status
 
-The normal FastAPI factory now reads **only `backend/runtime.env`**, using a fixed
+The normal FastAPI factory reads **only `backend/runtime.env`**, using a fixed
 path relative to the installed source. It never opens `backend/.env`. Alembic and
 administrative provisioning keep their existing, separate `MIGRATION_DATABASE_URL`
-configuration; neither their implementation nor migrations were changed.
+configuration.
 
 The credential loader implements the confirmed current-user Windows DPAPI format:
 `CryptUnprotectData` with flags `1` and ASCII entropy `PROJECT + ":" + ROLE`.
@@ -269,19 +271,16 @@ node tests/smoke.cjs
 
 ## Next stages
 
-1. Patient registration, consent, case assignments, visits, original-language
-   symptoms, vital signs and history; add narrowly scoped clinical write policies.
-2. Nurse-raised urgent flags with assigned-doctor priority queue and acknowledgement.
-   Urgency is a human flag; it never performs diagnosis, approves care or waits for
-   an external messaging integration.
-3. Consent-gated private uploads, validation/quarantine/scanner interface and secure downloads.
-4. Doctor review transitions and versioned decisions/prescriptions with transactional
-   audit events. AI suggestions remain separate, unapproved source material.
+1. Durable transcript and symptom intake while preserving original-language data.
+2. Nurse observations, clinician-designed safety rules and urgent escalation.
+3. Doctor case queue, doctor review and explicit approval transitions.
+4. Approved instruction delivery, follow-up and case closure.
+   No AI draft may authorize treatment; only a doctor decision can approve a plan.
 
-Gemini, Gnani.ai and WhatsApp have Protocol interfaces only. There are no provider
-implementations or autonomous diagnosis/prescribing paths. Stage 1 has no patient
-write API or clinical approval endpoint and does not claim a functioning urgent
-response service yet. No push, merge, remote migration or deployment is authorized.
+The Gemini and Gnani adapters have offline tests but remain disconnected from startup
+and workflow routes. No WhatsApp integration or autonomous diagnosis/prescribing path
+exists. Urgent-case decision support and doctor approval are not implemented. No live
+migration or deployment has been run.
 
 ## Stage 1 security corrections
 

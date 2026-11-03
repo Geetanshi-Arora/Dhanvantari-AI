@@ -7,7 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.core.security import Principal, require_role
 from app.schemas.patients import (
+    CaseHistoryResponse,
     ConsentMutationResponse,
+    ConsentNoticeCatalogueResponse,
+    PatientBasicResponse,
+    PatientCaseCreateResponse,
+    PatientCaseDirectoryResponse,
+    PatientCaseResponse,
     PatientDetailResponse,
     PatientDirectoryResponse,
     PatientRegistrationResponse,
@@ -84,14 +90,79 @@ def register(
     return invoke(request, "register", principal, body, idempotency_key=key)
 
 
+@router.get("/consent-notices", response_model=ConsentNoticeCatalogueResponse)
+def consent_notices(
+    request: Request,
+    language: str = Query(min_length=2, max_length=2),
+    principal: Principal = Depends(nurse),
+):
+    return invoke(request, "consent_notice_catalogue", principal, language=language)
+
+
 @router.get("", response_model=PatientDirectoryResponse)
 def directory(
     request: Request,
     principal: Principal = Depends(nurse),
     limit: int = Query(default=20, ge=1, le=100),
     cursor: UUID | None = None,
+    search: str | None = Query(default=None, max_length=80),
 ):
-    return invoke(request, "list_patients", principal, limit=limit, cursor=cursor)
+    return invoke(request, "list_patients", principal, limit=limit, cursor=cursor, search=search)
+
+
+@router.get("/cases", response_model=PatientCaseDirectoryResponse)
+def cases(
+    request: Request,
+    principal: Principal = Depends(nurse),
+    limit: int = Query(default=20, ge=1, le=100),
+    cursor: UUID | None = None,
+    search: str | None = Query(default=None, max_length=80),
+):
+    return invoke(request, "list_cases", principal, limit=limit, cursor=cursor, search=search)
+
+
+@router.get("/cases/{case_id}/history", response_model=CaseHistoryResponse)
+def case_history(case_id: UUID, request: Request, principal: Principal = Depends(nurse)):
+    return invoke(request, "case_history", principal, case_id)
+
+
+@router.get("/cases/{case_id}", response_model=PatientCaseResponse)
+def case_detail(case_id: UUID, request: Request, principal: Principal = Depends(nurse)):
+    return invoke(request, "get_case", principal, case_id)
+
+
+@router.post("/cases/{case_id}/status", response_model=PatientCaseResponse)
+def case_status(
+    case_id: UUID,
+    request: Request,
+    principal: Principal = Depends(nurse),
+    body: dict = Depends(write_body),
+):
+    return invoke(request, "transition_case", principal, case_id, body)
+
+
+@router.post("/{patient_id}/cases", status_code=201, response_model=PatientCaseCreateResponse)
+def create_case(
+    patient_id: UUID,
+    request: Request,
+    principal: Principal = Depends(nurse),
+    key: UUID = Depends(idempotency_key),
+    body: dict = Depends(write_body),
+):
+    language = body.get("language")
+    if set(body) - {"language"}:
+        raise HTTPException(422, "Invalid patient request")
+    return invoke(request, "create_case", principal, patient_id, language, idempotency_key=key)
+
+
+@router.patch("/{patient_id}", response_model=PatientBasicResponse)
+def update_patient(
+    patient_id: UUID,
+    request: Request,
+    principal: Principal = Depends(nurse),
+    body: dict = Depends(write_body),
+):
+    return invoke(request, "update_patient", principal, patient_id, body)
 
 
 @router.get("/{patient_id}", response_model=PatientDetailResponse)

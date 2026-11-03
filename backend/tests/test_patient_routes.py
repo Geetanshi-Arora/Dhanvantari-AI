@@ -20,6 +20,8 @@ from app.services.patients import PatientService, PatientServiceError
 NURSE = UUID("10000000-0000-4000-8000-000000000001")
 PATIENT = UUID("20000000-0000-4000-8000-000000000001")
 CONSENT = UUID("30000000-0000-4000-8000-000000000001")
+CASE = UUID("60000000-0000-4000-8000-000000000001")
+CASE_HISTORY = UUID("70000000-0000-4000-8000-000000000001")
 KEY = "40000000-0000-4000-8000-000000000001"
 ORIGIN = "http://localhost:8000"
 NOTICE = frozenset({("care", "TEST-ONLY", "en")})
@@ -42,6 +44,7 @@ def consent_response():
 def status():
     return dict(
         id=str(PATIENT),
+        case_id=str(CASE),
         reference="FICTIONAL-001",
         preferred_language="en",
         created_at=NOW,
@@ -58,6 +61,7 @@ def directory_item():
         age=36,
         age_recorded_on="2026-01-01",
         preferred_language="en",
+        created_at=NOW,
     )
 
 
@@ -80,6 +84,34 @@ def web(monkeypatch):
     service.register.return_value = status()
     service.registration_status.return_value = status()
     service.list_patients.return_value = dict(items=[directory_item()], next_cursor=None)
+    case = dict(
+        id=str(CASE),
+        patient_id=str(PATIENT),
+        patient_reference="FICTIONAL-001",
+        patient_name="Adult Fictional",
+        preferred_language="en",
+        nurse_id=str(NURSE),
+        doctor_id=None,
+        status="REGISTERED",
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    service.list_cases.return_value = dict(items=[case], next_cursor=None)
+    service.get_case.return_value = case
+    service.case_history.return_value = dict(
+        items=[
+            dict(
+                id=str(CASE_HISTORY),
+                case_id=str(CASE),
+                previous_status=None,
+                status="REGISTERED",
+                changed_by=str(NURSE),
+                changed_at=NOW,
+            )
+        ]
+    )
+    service.transition_case.return_value = case
+    service.consent_notice_catalogue.return_value = dict(items=[])
     service.get_patient.return_value = dict(
         **directory_item(),
         sex=None,
@@ -87,7 +119,6 @@ def web(monkeypatch):
         history="Fictional history",
         allergies=None,
         current_medicines=None,
-        created_at=NOW,
     )
     service.record_consent.return_value = dict(consent=consent_response(), care_access="enabled")
     service.revoke_consent.return_value = dict(
@@ -186,6 +217,34 @@ def test_six_contracts_and_verified_principal(web, method, path, operation, body
         assert call.args[2] == CONSENT
     assert response.headers["cache-control"] == "no-store"
     assert web.events == ["actor"]
+
+
+def test_case_listing_detail_history_and_transition_routes(web):
+    cases = web.client.get(ROOT + "/cases", headers={"Origin": ORIGIN})
+    assert cases.status_code == 200 and cases.json()["items"][0]["id"] == str(CASE)
+    detail = web.client.get(ROOT + f"/cases/{CASE}", headers={"Origin": ORIGIN})
+    assert detail.status_code == 200 and detail.json()["status"] == "REGISTERED"
+    history = web.client.get(ROOT + f"/cases/{CASE}/history", headers={"Origin": ORIGIN})
+    assert history.status_code == 200 and history.json()["items"][0]["status"] == "REGISTERED"
+    transition = web.client.post(
+        ROOT + f"/cases/{CASE}/status", headers=headers(), json={"status": "INTAKE_IN_PROGRESS"}
+    )
+    assert transition.status_code == 200
+    call = web.service.transition_case.call_args
+    assert call.args[0].id == NURSE and call.args[1] == CASE
+    assert call.args[2] == {"status": "INTAKE_IN_PROGRESS"}
+
+
+def test_draft_notice_catalogue_is_nurse_protected_and_safe(web):
+    response = web.client.get(ROOT + "/consent-notices?language=hi", headers={"Origin": ORIGIN})
+    assert response.status_code == 200 and response.json() == {"items": []}
+    web.staff.role = "doctor"
+    assert (
+        web.client.get(
+            ROOT + "/consent-notices?language=hi", headers={"Origin": ORIGIN}
+        ).status_code
+        == 403
+    )
 
 
 @pytest.mark.parametrize("method,path,operation,body,code", CASES)

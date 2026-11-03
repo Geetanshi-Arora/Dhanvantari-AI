@@ -259,14 +259,29 @@ test("reset and language changes preserve disabled real controls", async () => {
 
 const A = "20000000-0000-4000-8000-000000000001";
 const B = "20000000-0000-4000-8000-000000000002";
-const row = (id, language = "hi") => ({ id, reference: id === A ? "FICTIONAL-A" : "FICTIONAL-B", name: "Fictional Adult", age: 36, age_recorded_on: "2026-01-01", preferred_language: language });
-const status = (id, language = "hi", care = "enabled") => ({ id, reference: row(id).reference, preferred_language: language, created_at: "2026-01-01T00:00:00Z", care_access: care, consents: [{ id: "30000000-0000-4000-8000-000000000001", purpose: "care", notice_version: "TEST-ONLY-HISTORICAL", language, granted: care === "enabled", status: care === "enabled" ? "granted" : "declined", created_at: "2026-01-01T00:00:00Z", revoked_at: null }] });
-const detail = id => ({ ...row(id), sex: null, contact_reference: null, history: "Fictional history", allergies: null, current_medicines: null, created_at: "2026-01-01T00:00:00Z" });
+const CA = "60000000-0000-4000-8000-000000000001";
+const CB = "60000000-0000-4000-8000-000000000002";
+const row = (id, language = "hi") => ({ id: id === A ? CA : CB, patient_id: id,
+  patient_reference: id === A ? "FICTIONAL-A" : "FICTIONAL-B", patient_name: "Fictional Adult",
+  preferred_language: language, nurse_id: A, doctor_id: null, status: "REGISTERED",
+  created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" });
+const status = (id, language = "hi", care = "enabled") => ({ id, case_id: id === A ? CA : CB,
+  reference: row(id).patient_reference, preferred_language: language, created_at: "2026-01-01T00:00:00Z",
+  care_access: care, consents: [{ id: "30000000-0000-4000-8000-000000000001", purpose: "care",
+    notice_version: "DRAFT-SYNTHETIC-1", language, granted: care === "enabled",
+    status: care === "enabled" ? "granted" : "declined", created_at: "2026-01-01T00:00:00Z", revoked_at: null }] });
+const detail = id => ({ id, reference: row(id).patient_reference, name: "Fictional Adult", age: 32,
+  age_recorded_on: "2026-01-01", preferred_language: id === A ? "hi" : "ta",
+  sex: null, contact_reference: null, history: "Fictional history", allergies: null,
+  current_medicines: null, created_at: "2026-01-01T00:00:00Z" });
 const response = (body, code = 200) => ({ ok: code >= 200 && code < 300, status: code, json: async () => body });
 async function flush() { for (let i = 0; i < 30; i++) await Promise.resolve(); }
 async function application(overrides = {}) {
   const doc = documentDouble();
   const config = { directory: () => response({ items: [row(A), row(B, "ta")], next_cursor: null }),
+    case: id => response({ ...row(id === CA ? A : B), id }),
+    history: id => response({ items: [{ id: "70000000-0000-4000-8000-000000000001", case_id: id,
+      previous_status: null, status: "REGISTERED", changed_by: A, changed_at: "2026-01-01T00:00:00Z" }] }),
     registration: id => response(status(id, id === A ? "hi" : "ta")),
     detail: id => response(detail(id)), auth: () => response({ id: A, role: "nurse", display_name: "Fictional Nurse" }), ...overrides };
   const env = sandbox(doc, async (url, options) => {
@@ -276,7 +291,11 @@ async function application(overrides = {}) {
     if (url === "/api/v1/auth/me") return config.auth();
     if (url === "/api/v1/auth/csrf") return response({ csrf_token: "fictional-csrf" });
     if (url === "/api/v1/auth/logout") return response(null, 204);
-    if (url.startsWith("/api/v1/patients?")) return config.directory(url);
+    if (url.startsWith("/api/v1/patients/cases?")) return config.directory(url);
+    const historyMatch = url.match(/^\/api\/v1\/patients\/cases\/([^/]+)\/history$/);
+    if (historyMatch) return config.history(historyMatch[1]);
+    const caseMatch = url.match(/^\/api\/v1\/patients\/cases\/([^/]+)$/);
+    if (caseMatch) return config.case(caseMatch[1]);
     const match = url.match(/^\/api\/v1\/patients\/([^/]+)(\/registration)?$/);
     if (match) return match[2] ? config.registration(match[1]) : config.detail(match[1]);
     throw new Error("Unexpected or voice API request forbidden");
@@ -297,7 +316,7 @@ test("actual app: verified nurse, authorized record language and close reset", a
   assert.equal(f.node("patient-rows").children.length, 2);
   await f.open();
   assert.equal(f.node("voice-demo-language").value, "hi");
-  assert.match(f.node("patient-view-message").textContent, /Read-only/);
+  assert.match(f.node("patient-view-message").textContent, /Assigned patient case/);
   await f.node("patient-view-close").emit("click");
   assert.equal(f.node("voice-demo-language").value, "");
   assert.equal(f.node("patient-detail-content").children.length, 0);
@@ -383,8 +402,9 @@ test("static safety: no microphone, playback, persistence or provider request AP
     assert.match(tag, /disabled/);
   }
   const registration = fs.readFileSync(path.join(base, "register.html"), "utf8");
-  assert.match(registration, /type="submit" disabled/);
-  assert.match(registration, /Registration is unavailable until approved consent notices/);
+  assert.match(registration, /type="submit"/);
+  assert.match(registration, /Draft notice text has not been supplied/);
+  assert.match(registration, /never valid consent for real patients/);
 });
 
 
@@ -395,7 +415,7 @@ test("actual app: wrong role cannot initialize the nurse voice preview", async (
   assert.equal(f.node("main").hidden, true);
 });
 
-test("actual app: read-only directory pagination deduplicates without voice requests", async () => {
+test("actual app: case pagination deduplicates without voice requests", async () => {
   const f = await application({ directory: url => url.includes("cursor=")
     ? response({ items: [row(A), row(B)], next_cursor: null })
     : response({ items: [row(A)], next_cursor: A }) });

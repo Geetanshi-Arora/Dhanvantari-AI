@@ -22,11 +22,21 @@ from app.db.session import actor_session
 from app.models.clinical import Patient
 from app.models.foundation import AuditLog, Nurse, StaffProfile
 from app.schemas.patients import (
+    CaseHistoryResponse,
+    CaseStatusUpdateRequest,
     ConsentMutationResponse,
+    ConsentNoticeCatalogueResponse,
+    ConsentNoticeOption,
     ConsentPurpose,
     ConsentRevocationRequest,
     ConsentUpdateRequest,
     Language,
+    PatientBasicResponse,
+    PatientBasicUpdateRequest,
+    PatientCaseCreateRequest,
+    PatientCaseCreateResponse,
+    PatientCaseDirectoryResponse,
+    PatientCaseResponse,
     PatientDetailResponse,
     PatientDirectoryItem,
     PatientDirectoryResponse,
@@ -45,6 +55,7 @@ _ERRORS = {
     "consent_conflict": (409, "Consent decision has changed"),
     "unavailable": (503, "Patient operation unavailable"),
     "audit_unavailable": (503, "Patient access audit unavailable"),
+    "invalid_transition": (409, "Case status transition is not permitted"),
 }
 _DATABASE_ERRORS = {
     "registration." + code: code
@@ -58,6 +69,13 @@ _DATABASE_ERRORS = {
         "consent_conflict",
     )
 }
+_DATABASE_ERRORS.update(
+    {
+        "case.forbidden": "forbidden",
+        "case.not_found": "not_found",
+        "case.invalid_input": "invalid_input",
+    }
+)
 _DIRECTORY_COLUMNS = (
     Patient.id,
     Patient.reference,
@@ -65,6 +83,7 @@ _DIRECTORY_COLUMNS = (
     Patient.age,
     Patient.age_recorded_on,
     Patient.preferred_language,
+    Patient.created_at,
 )
 _DETAIL_COLUMNS = (
     *_DIRECTORY_COLUMNS,
@@ -73,7 +92,6 @@ _DETAIL_COLUMNS = (
     Patient.history,
     Patient.allergies,
     Patient.current_medicines,
-    Patient.created_at,
 )
 _TIMEOUTS = (
     "SET LOCAL statement_timeout = '10s'",
@@ -141,6 +159,26 @@ class PatientService:
         self.engine = engine
         self._notices = approved_consent_notices
 
+    def consent_notice_catalogue(self, principal, *, request_id, language):
+        self._principal(principal, request_id)
+        if language not in get_args(Language):
+            raise PatientServiceError("invalid_input")
+        return ConsentNoticeCatalogueResponse(
+            items=[
+                ConsentNoticeOption(
+                    purpose=purpose,
+                    notice_version=version,
+                    language=locale,
+                    publication_state="draft",
+                    content_state="not_provided",
+                    content=None,
+                    synthetic_only=True,
+                )
+                for purpose, version, locale in sorted(self._notices)
+                if locale == language and version.startswith("DRAFT-SYNTHETIC-")
+            ]
+        )
+
     def _principal(self, principal, request_id):
         if (
             not isinstance(principal, Principal)
@@ -185,6 +223,10 @@ class PatientService:
     def _function(self, principal, request_id, statement, parameters, response_model):
         self._principal(principal, request_id)
         with self._transaction(principal) as db:
+            db.execute(
+                text("SELECT set_config('app.request_id', :request, true)"),
+                {"request": str(request_id)},
+            )
             result = db.scalar(text(statement), parameters)
             response = response_model.model_validate(result)
         # actor_session must finish COMMIT successfully before data is returned.
@@ -281,18 +323,27 @@ class PatientService:
         except Exception:
             raise PatientServiceError("audit_unavailable") from None
 
-    def list_patients(self, principal, *, request_id, limit=20, cursor=None):
+    def list_patients(self, principal, *, request_id, limit=20, cursor=None, search=None):
         self._principal(principal, request_id)
         if type(limit) is not int or not 1 <= limit <= 100:
             raise PatientServiceError("invalid_input")
         if cursor is not None:
             _uuid(cursor)
+        if search is not None and (
+            not isinstance(search, str) or len(search) > 80 or "\x00" in search
+        ):
+            raise PatientServiceError("invalid_input")
         with self._transaction(principal) as db:
             if db.scalar(self._nurse_query(principal)) is None:
                 raise PatientServiceError("forbidden")
             query = self._read_query(principal, _DIRECTORY_COLUMNS)
             if cursor is not None:
                 query = query.where(Patient.id > cursor)
+            if search:
+                query = query.where(
+                    Patient.name.ilike("%" + search.strip() + "%")
+                    | Patient.reference.ilike("%" + search.strip() + "%")
+                )
             rows = db.execute(query.order_by(Patient.id).limit(limit + 1)).mappings().all()
             items = [PatientDirectoryItem.model_validate(row) for row in rows[:limit]]
             response = PatientDirectoryResponse.model_validate(
@@ -303,6 +354,108 @@ class PatientService:
             )
         self._access_audit(principal, request_id, "patient.list", "success")
         return response
+
+    def list_cases(self, principal, *, request_id, limit=20, cursor=None, search=None):
+        self._principal(principal, request_id)
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise PatientServiceError("invalid_input")
+        if cursor is not None:
+            _uuid(cursor)
+        if search is not None and (
+            not isinstance(search, str) or len(search) > 80 or "\x00" in search
+        ):
+            raise PatientServiceError("invalid_input")
+        return self._function(
+            principal,
+            request_id,
+            "SELECT app.list_nurse_cases(:search,:limit,:cursor,:request)",
+            {"search": search or None, "limit": limit, "cursor": cursor, "request": request_id},
+            PatientCaseDirectoryResponse,
+        )
+
+    def get_case(self, principal, case_id, *, request_id):
+        self._principal(principal, request_id)
+        _uuid(case_id)
+        return self._function(
+            principal,
+            request_id,
+            "SELECT app.get_nurse_case(:case,:request)",
+            {"case": case_id, "request": request_id},
+            PatientCaseResponse,
+        )
+
+    def case_history(self, principal, case_id, *, request_id):
+        self._principal(principal, request_id)
+        _uuid(case_id)
+        return self._function(
+            principal,
+            request_id,
+            "SELECT app.get_nurse_case_history(:case,:request)",
+            {"case": case_id, "request": request_id},
+            CaseHistoryResponse,
+        )
+
+    def transition_case(self, principal, case_id, body, *, request_id):
+        self._principal(principal, request_id)
+        _uuid(case_id)
+        payload = self._request(CaseStatusUpdateRequest, body)
+        try:
+            with self._transaction(principal) as db:
+                db.execute(
+                    text("SELECT app.transition_case(:case,:status,:request)"),
+                    {
+                        "case": case_id,
+                        "status": payload.status,
+                        "request": request_id,
+                    },
+                )
+        except SQLAlchemyError as error:
+            mapped = _database_error(error)
+            if getattr(getattr(error, "orig", None), "sqlstate", None) == "P0001":
+                primary = getattr(
+                    getattr(getattr(error, "orig", None), "diag", None), "message_primary", None
+                )
+                if primary == "case.invalid_transition":
+                    raise PatientServiceError("invalid_transition") from None
+            raise mapped from None
+        return self.get_case(principal, case_id, request_id=request_id)
+
+    def create_case(self, principal, patient_id, language, *, idempotency_key, request_id):
+        self._principal(principal, request_id)
+        _uuid(patient_id)
+        _uuid(idempotency_key, version=4)
+        try:
+            payload = PatientCaseCreateRequest.model_validate({"language": language})
+        except ValidationError:
+            raise PatientServiceError("invalid_input") from None
+        return self._function(
+            principal,
+            request_id,
+            "SELECT app.create_patient_case(:patient,:language,:key,:request)",
+            {
+                "patient": patient_id,
+                "language": payload.language,
+                "key": idempotency_key,
+                "request": request_id,
+            },
+            PatientCaseCreateResponse,
+        )
+
+    def update_patient(self, principal, patient_id, body, *, request_id):
+        self._principal(principal, request_id)
+        _uuid(patient_id)
+        body = self._request(PatientBasicUpdateRequest, body)
+        return self._function(
+            principal,
+            request_id,
+            "SELECT app.update_patient_basic(:patient,CAST(:payload AS jsonb),:request)",
+            {
+                "patient": patient_id,
+                "payload": body.model_dump_json(exclude_unset=True),
+                "request": request_id,
+            },
+            PatientBasicResponse,
+        )
 
     def get_patient(self, principal, patient_id, *, request_id):
         self._principal(principal, request_id)

@@ -52,6 +52,7 @@ def consent_response(granted=True, revoked=False):
 def registration_response():
     return dict(
         id=PATIENT,
+        case_id=UUID("60000000-0000-4000-8000-000000000001"),
         reference="FICTIONAL-001",
         preferred_language="hi",
         created_at=NOW,
@@ -68,6 +69,7 @@ def directory_row(identity=PATIENT):
         age=36,
         age_recorded_on=NOW.date(),
         preferred_language="hi",
+        created_at=NOW,
     )
 
 
@@ -79,7 +81,6 @@ def detail_row():
         history="Fictional history",
         allergies=None,
         current_medicines=None,
-        created_at=NOW,
     )
 
 
@@ -183,6 +184,7 @@ def test_timeouts_precede_sql_and_remain_transaction_local(harness):
         "SET LOCAL statement_timeout = '10s'",
         "SET LOCAL lock_timeout = '5s'",
         "SET LOCAL idle_in_transaction_session_timeout = '10s'",
+        "SELECT set_config('app.request_id', :request, true)",
     ]
 
 
@@ -562,6 +564,36 @@ def test_empty_directory_is_still_audited(harness):
     response = harness.service.list_patients(PRINCIPAL, request_id=REQUEST)
     assert response.items == [] and response.next_cursor is None
     harness.audit.assert_called_once()
+
+
+def test_case_listing_uses_assignment_checked_database_function(harness):
+    case = dict(
+        id=PATIENT,
+        patient_id=PATIENT,
+        patient_reference="FICTIONAL-001",
+        patient_name="Adult Fictional",
+        preferred_language="hi",
+        nurse_id=NURSE,
+        doctor_id=None,
+        status="REGISTERED",
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    harness.function_result = {"items": [case], "next_cursor": None}
+    result = harness.service.list_cases(PRINCIPAL, request_id=REQUEST, search="Adult")
+    assert result.items[0].status == "REGISTERED"
+    statement, parameters = harness.db.function_calls[0]
+    assert statement == "SELECT app.list_nurse_cases(:search,:limit,:cursor,:request)"
+    assert parameters == {"search": "Adult", "limit": 20, "cursor": None, "request": REQUEST}
+
+
+def test_case_status_is_validated_before_database_call(harness):
+    with pytest.raises(patients.PatientServiceError) as error:
+        harness.service.transition_case(
+            PRINCIPAL, PATIENT, {"status": "PRESCRIBED"}, request_id=REQUEST
+        )
+    assert error.value.status_code == 422
+    assert not harness.events
 
 
 @pytest.mark.parametrize("method", ["detail", "status", "cursor", "request"])

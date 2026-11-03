@@ -56,17 +56,16 @@
             </h1>
             <p>Here’s a little overview of your community care workspace.</p>
           </div>
-          <button class="button" type="button" disabled>Registration unavailable</button>
+          <a class="button" href="register.html">Register patient</a>
         </div>
-        <div class="notice compact">
-          <strong>Development workspace</strong> · Fictional patient records only.
-          Registration is unavailable until approved consent notices are configured.
-          Do not enter real patient information.
+        <div class="notice compact" id="synthetic-workspace-notice">
+          <strong>Synthetic development workspace</strong> · Registrations use draft consent metadata only.
+          No draft notice text has been supplied. Never use this flow with real patients.
         </div>
         <div class="stats-grid">
           <article class="stat">
             <span class="stat-icon blue">♧</span>
-            <p>Loaded patient records</p>
+            <p>Assigned patient cases</p>
             <strong id="patient-count">—</strong
             ><small>Loaded records, not a database total</small>
           </article>
@@ -114,10 +113,10 @@
                 <thead>
                   <tr>
                     <th>Patient</th>
-                    <th>Patient reference</th>
-                    <th>Age</th>
+                    <th>Case ID</th>
                     <th>Language</th>
-                    <th>Record</th>
+                    <th>Registered</th>
+                    <th>Status / action</th>
                   </tr>
                 </thead>
                 <tbody id="patient-rows"></tbody>
@@ -125,7 +124,7 @@
             </div>
             <p id="empty-search" hidden>No loaded records match your search.</p>
             <button id="patient-load-more" class="button small" type="button" hidden>Load more</button>
-            <p class="input-help">Select a record to view permitted details and registration status. No clinical actions are available.</p>
+            <p class="input-help">Open a case to view its registration details and status history. No clinical decisions are available.</p>
             <section id="patient-view" aria-labelledby="patient-view-heading" hidden>
               <div class="panel-heading">
                 <h3 id="patient-view-heading">Patient record</h3>
@@ -141,10 +140,9 @@
             <p class="eyebrow">YOUR NEXT STEP</p>
             <h2>A thoughtful start<br />to every visit.</h2>
             <p>
-              Browse authorized fictional patient records. New registration and
-              consent submissions remain unavailable until approved notices are configured.
+              Register a synthetic test patient or open an assigned case. Draft notices are not valid for real-patient use.
             </p>
-            <button class="button full" type="button" disabled>Registration unavailable</button>
+            <a class="button full" href="register.html">Register synthetic patient</a>
             <div class="next-divider"></div>
             <h3>Coming in later phases</h3>
             <ul class="roadmap-list">

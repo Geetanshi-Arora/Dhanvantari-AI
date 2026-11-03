@@ -137,3 +137,30 @@ passes startup validation and supports transaction-local role/identity changes.
 Inspect managed-object/PUBLIC effective permissions and test real Auth with fictional
 accounts separately. No live connectivity, login provisioning or migration is part
 of this local milestone.
+
+## Case lifecycle and synthetic notice drafts (revision 0006)
+
+Revision `0006` uses the existing `app.visits` table as the case record and UUID case
+identifier. A trigger creates the initial `REGISTERED` case inside patient
+registration's database transaction. Multiple cases can be added to an existing
+patient without duplicating the patient identity. `app.case_status_history` stores
+append-only status events; a security-definer transition function enforces the
+nurse-stage transition graph and records a fixed audit event. Doctor-stage statuses
+are reserved but cannot be reached through the current nurse API. This migration
+does not implement doctor approval.
+
+`app.consent_notice_versions` gains a `development_only` marker and the new private
+`app.consent_notice_drafts` structure stores purpose, version, language and optional
+content. The synthetic fixture version `DRAFT-SYNTHETIC-1` is seeded for each
+supported language with no content. It is not marked as published or approved. The
+current registration function hard-codes synthetic patients; real-patient consent
+requires an official notice publication and a separately designed real-patient
+registration path. Do not set `accepts_new` for the draft fixture.
+
+`CONSENT_NOTICE_IDENTITIES` is an optional JSON list of exact
+`purpose:version:language` tuples for future published notice versions. The database
+remains authoritative and rejects decisions for versions that are not published
+and accepted. The development server adds only explicit synthetic draft identities
+to its request validator. Revision 0006 has not been applied to a live database by
+this implementation task; run it only through the reviewed migration process after
+disposable-database verification.

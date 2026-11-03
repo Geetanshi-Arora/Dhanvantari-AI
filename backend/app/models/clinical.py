@@ -83,7 +83,13 @@ class Consent(Record, Base):
 class Visit(Record, Base):
     __tablename__ = "visits"
     __table_args__ = (
-        CheckConstraint("status IN ('draft','pending','approved','rejected','referred')"),
+        CheckConstraint(
+            "status IN ('REGISTERED','INTAKE_IN_PROGRESS','TRANSCRIPT_PENDING_CONFIRMATION',"
+            "'SYMPTOM_REVIEW','NURSE_CHECKS_PENDING','READY_FOR_DOCTOR','DOCTOR_REVIEW',"
+            "'ADDITIONAL_INFORMATION_REQUIRED','PENDING_DOCTOR_APPROVAL','APPROVED',"
+            "'REFERRED','FOLLOW_UP','CLOSED')",
+            name="ck_visits_case_status",
+        ),
         {"schema": "app"},
     )
     patient_id: Mapped[UUID] = mapped_column(ForeignKey("app.patients.id"), index=True)
@@ -91,8 +97,23 @@ class Visit(Record, Base):
     doctor_id: Mapped[UUID | None] = mapped_column(ForeignKey("app.doctors.id"), index=True)
     visit_date: Mapped[date] = mapped_column(Date)
     language: Mapped[str] = mapped_column(String(16))
-    status: Mapped[str] = mapped_column(String(16), server_default="draft")
+    status: Mapped[str] = mapped_column(String(40), server_default="REGISTERED")
     version: Mapped[int] = mapped_column(Integer, server_default="1")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class CaseStatusHistory(Base):
+    __tablename__ = "case_status_history"
+    __table_args__ = {"schema": "app"}
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    visit_id: Mapped[UUID] = mapped_column(ForeignKey("app.visits.id"), index=True)
+    previous_status: Mapped[str | None] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(40))
+    changed_by: Mapped[UUID] = mapped_column(ForeignKey("app.staff_profiles.id"))
+    request_id: Mapped[UUID] = mapped_column()
+    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Symptom(Record, Base):
