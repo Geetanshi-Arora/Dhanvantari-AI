@@ -20,23 +20,6 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    env:
-      # The fixture sets MIGRATION_DATABASE_URL to its own pgserver URL only
-      # after creating a fresh disposable PostgreSQL cluster.
-      DATABASE_URL: ""
-      MIGRATION_DATABASE_URL: ""
-      SQLALCHEMY_DATABASE_URI: ""
-      PGHOST: ""
-      PGHOSTADDR: ""
-      PGPORT: ""
-      PGDATABASE: ""
-      PGUSER: ""
-      PGSERVICE: ""
-      PGSERVICEFILE: ""
-      PGPASSWORD: ""
-      PGPASSFILE: ""
-      PGSSLMODE: ""
-      PGOPTIONS: ""
 
     steps:
       - name: Check out source without persisting the token
@@ -77,12 +60,28 @@ jobs:
           PY
 
       - name: Run schema, RLS, ownership and migration reapplication tests
-        run: python -m pytest -q --basetemp "$RUNNER_TEMP/dhanvantari-phase2-postgres" tests/test_database.py
+        shell: bash
+        run: |
+          unset DATABASE_URL MIGRATION_DATABASE_URL SQLALCHEMY_DATABASE_URI \
+            PGHOST PGHOSTADDR PGPORT PGDATABASE PGUSER PGSERVICE PGSERVICEFILE \
+            PGPASSWORD PGPASSFILE PGSSLMODE PGOPTIONS
+          for name in DATABASE_URL MIGRATION_DATABASE_URL SQLALCHEMY_DATABASE_URI \
+            PGHOST PGHOSTADDR PGPORT PGDATABASE PGUSER PGSERVICE PGSERVICEFILE \
+            PGPASSWORD PGPASSFILE PGSSLMODE PGOPTIONS; do
+            if [[ -v "$name" ]]; then
+              echo "Refusing test with inherited database setting: $name" >&2
+              exit 1
+            fi
+          done
+          python -m pytest -q --basetemp "$RUNNER_TEMP/dhanvantari-phase2-postgres" tests/test_database.py
 
       - name: Remove disposable PostgreSQL cluster files
         if: always()
         shell: bash
         run: |
+          unset DATABASE_URL MIGRATION_DATABASE_URL SQLALCHEMY_DATABASE_URI \
+            PGHOST PGHOSTADDR PGPORT PGDATABASE PGUSER PGSERVICE PGSERVICEFILE \
+            PGPASSWORD PGPASSFILE PGSSLMODE PGOPTIONS
           python - <<'PY'
           import os
           import shutil
