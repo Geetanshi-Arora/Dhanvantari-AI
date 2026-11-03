@@ -1,10 +1,12 @@
 import os
+import sys
 from pathlib import Path
 
 from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
+from app.db.migration_diagnostics import migration_exception_summary
 from app.db.migration_security import protect_migration_ledger
 from app.models import clinical, registration  # noqa: F401
 from app.models.foundation import Base
@@ -39,7 +41,12 @@ def run_migrations():
 
 try:
     run_migrations()
-except Exception:
+except Exception as error:
+    print(
+        "Alembic migration diagnostic: " + migration_exception_summary(error),
+        file=sys.stderr,
+        flush=True,
+    )
     raise RuntimeError(
         "Migration failed; check private configuration and database permissions"
     ) from None
